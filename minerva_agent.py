@@ -53,7 +53,8 @@ st.sidebar.header("Select Websites to Analyze")
 website_choices = [
     "https://www.qbitai.com/",
     "https://www.jiqizhixin.com/",
-    "https://lilianweng.github.io/"
+    "https://lilianweng.github.io/",
+    "https://x.com/deepseek_ai"
 ]
 selected_websites = st.sidebar.multiselect(
     "Choose websites to analyze:",
