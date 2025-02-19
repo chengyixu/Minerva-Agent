@@ -41,7 +41,9 @@ def translate_to_chinese(content):
         ]
     )
     
-    return completion.choices[0].message['content']
+    # Correctly access the content from the response
+    translated_content = completion['choices'][0]['message']['content']
+    return translated_content
 
 # Streamlit UI
 st.title("Website Content Analyzer")
