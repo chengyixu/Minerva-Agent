@@ -50,7 +50,7 @@ st.title("Website Content Analyzer")
 st.sidebar.header("Select Website")
 website_choice = st.sidebar.selectbox(
     "Choose a website to analyze:",
-    ["https://www.qbitai.com/", "https://www.jiqizhixin.com/","https://dashscope.aliyuncs.com/compatible-mode/v1"]
+    ["https://www.qbitai.com/", "https://www.jiqizhixin.com/","https://lilianweng.github.io/"]
 )
 
 if st.button("Analyze Website"):
