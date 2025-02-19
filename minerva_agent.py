@@ -41,7 +41,7 @@ def analyze_with_qwen(domain, raw_html):
     return response['output']['choices'][0]['message']['content']
 
 # Streamlit UI components
-st.title("Minerva Agent: 提取各大信源的关键主题")   
+st.title("Minerva Agent")   
 
 # List of default websites
 default_websites = [
