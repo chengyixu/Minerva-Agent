@@ -18,7 +18,7 @@ def fetch_website_content(url):
         for idx, article in enumerate(articles[:10]):  # Only fetch the latest 10 articles
             title = article.get_text().strip()
             one_liner = article.find_next('p').get_text().strip() if article.find_next('p') else "No summary available"
-            content.append(f"{idx + 1}. {title}, {one_liner}, {url}")
+            content.append(f"{idx + 1}. \"{title}\", \"{one_liner}\", {url}")
         
         return content
     except Exception as e:
@@ -49,25 +49,36 @@ def translate_to_chinese(content):
 st.title("Website Content Analyzer")
 
 # URL selection
-st.sidebar.header("Select Website")
-website_choice = st.sidebar.selectbox(
-    "Choose a website to analyze:",
-    ["https://www.qbitai.com/", "https://www.jiqizhixin.com/","https://lilianweng.github.io/"]
+st.sidebar.header("Select Websites to Analyze")
+website_choices = [
+    "https://www.qbitai.com/",
+    "https://www.jiqizhixin.com/",
+    "https://lilianweng.github.io/"
+]
+selected_websites = st.sidebar.multiselect(
+    "Choose websites to analyze:",
+    website_choices,
+    default=website_choices  # Default to analyzing all websites
 )
 
-if st.button("Analyze Website"):
-    # Fetch and display content from the selected website
-    website_content = fetch_website_content(website_choice)
+if st.button("Analyze Websites"):
+    # Loop through selected websites and fetch content
+    all_content = []
+    for website in selected_websites:
+        st.subheader(f"Latest Topics from {website}")
+        website_content = fetch_website_content(website)
+        
+        if isinstance(website_content, str) and website_content.startswith("Error"):
+            st.error(website_content)
+        else:
+            for topic in website_content:
+                st.write(topic)
+            all_content.append("\n".join(website_content))
     
-    if isinstance(website_content, str) and website_content.startswith("Error"):
-        st.error(website_content)
-    else:
-        st.subheader(f"Latest Topics from {website_choice}")
-        for topic in website_content:
-            st.write(topic)
-
-        # Translate the contents into Chinese
-        all_content = "\n".join(website_content)
-        st.subheader("Translated Content to Chinese")
-        translated_content = translate_to_chinese(all_content)
-        st.write(translated_content)
+    # Combine all content from the websites
+    combined_content = "\n\n".join(all_content)
+    
+    # Translate the combined contents into Chinese
+    st.subheader("Translated Content to Chinese")
+    translated_content = translate_to_chinese(combined_content)
+    st.write(translated_content)
