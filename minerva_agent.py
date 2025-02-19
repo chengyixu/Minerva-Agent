@@ -1,92 +1,82 @@
 import streamlit as st
 import requests
-import os
+import datetime
 import dashscope
-from bs4 import BeautifulSoup
 
-# Function to fetch and parse the webpage
-def fetch_website_content(url):
+# Function to get raw HTML content from the websites
+def get_raw_html(domain):
     try:
-        response = requests.get(url)
-        response.raise_for_status()  # Check for request errors
-        soup = BeautifulSoup(response.content, "html.parser")
-
-        # Find the latest topics by extracting titles and summaries
-        # For simplicity, assuming articles are in <article> or <h2> tags. Adjust as needed.
-        articles = soup.find_all(['h2', 'article'])
-
-        content = []
-        for idx, article in enumerate(articles[:10]):  # Only fetch the latest 10 articles
-            title = article.get_text().strip()
-            one_liner = article.find_next('p').get_text().strip() if article.find_next('p') else "No summary available"
-            content.append(f"{idx + 1}. \"{title}\", \"{one_liner}\", {url}")
-        
-        return content
-    except Exception as e:
-        return f"Error fetching content: {e}"
-
-# Function to summarize the content using LLM
-def summarize_content(content):
-    api_key = "sk-1a28c3fcc7e044cbacd6faf47dc89755"  # Replace with your actual API key
-    # Prepare the messages for summarization
-    messages = [
-        {'role': 'system', 'content': 'You are a helpful assistant.'},
-        {'role': 'user', 'content': f"Please summarize the following content into the latest 10 key ideas in the format: '1. title, one-liner description, website name': {content}"}
-    ]
-    
-    # Call the Dashscope API to summarize the content
-    try:
-        response = dashscope.Generation.call(
-            api_key=api_key,
-            model="qwen-plus",  # Example model, replace as needed
-            messages=messages,
-            enable_search=True,
-            result_format='message'
-        )
-
-        # Access the response content correctly
-        summarized_content = response['message']
-        return summarized_content
-
-    except Exception as e:
-        print(f"Error: {e}")  # Catch any other errors
-        return f"Error summarizing content: {e}"
-
-# Streamlit UI
-st.title("Website Content Analyzer and Summarizer")
-
-# URL selection
-st.sidebar.header("Select Websites to Analyze")
-website_choices = [
-    "https://www.qbitai.com/",
-    "https://www.jiqizhixin.com/",
-    "https://lilianweng.github.io/",
-    "https://x.com/deepseek_ai"
-]
-selected_websites = st.sidebar.multiselect(
-    "Choose websites to analyze:",
-    website_choices,
-    default=website_choices  # Default to analyzing all websites
-)
-
-if st.button("Analyze Websites"):
-    # Loop through selected websites and fetch content
-    all_content = []
-    for website in selected_websites:
-        st.subheader(f"Latest Topics from {website}")
-        website_content = fetch_website_content(website)
-        
-        if isinstance(website_content, str) and website_content.startswith("Error"):
-            st.error(website_content)
+        # Send request to the website and get the raw HTML content
+        response = requests.get(f'http://{domain}')
+        if response.status_code == 200:
+            return response.content
         else:
-            for topic in website_content:
-                st.write(topic)
-            all_content.append("\n".join(website_content))
+            return f"Failed to retrieve content from {domain}. HTTP Status Code: {response.status_code}"
+    except Exception as e:
+        return f"Error while fetching content from {domain}: {str(e)}"
+
+# Function to prepare the message for Qwen LLM analysis
+def analyze_with_qwen(domain, raw_html):
+    messages = [
+        {'role': 'system', 'content': 'You are a web researcher. Analyze the raw HTML content and extract key topics in the following format: "1. Title | Description | Website"'},
+        {'role': 'user', 'content': f'''
+        Analyze the raw HTML content from {domain} and provide the latest 10 topics with:
+        1. Article titles in English
+        2. Article titles in Chinese
+        3. One-line descriptions in English
+        4. One-line descriptions in Chinese
+        5. Website name
+        Use current date: {datetime.date.today()}.
+        HTML Content: {raw_html.decode('utf-8')}
+        '''}
+    ]
+
+    response = dashscope.Generation.call(
+        api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
+        model="qwen-max",
+        messages=messages,
+        enable_search=True,
+        result_format='message'
+    )
+    return response['output']['choices'][0]['message']['content']
+
+# Streamlit UI components
+st.title("Website Content Scraper & Analyzer")
+
+# List of default websites
+default_websites = [
+    "qbitai.com",
+    "jiqizhixin.com",
+    "lilianweng.github.io",
+    "x.com/deepseek_ai"
+]
+
+# Input for user to add websites
+input_websites = st.text_area("Enter websites (comma separated)", 
+                              value=', '.join(default_websites), 
+                              height=100)
+
+# Convert input string to a list of websites
+websites = [site.strip() for site in input_websites.split(',')]
+
+# Display results
+for site in websites:
+    st.write(f"### Scraping raw HTML from {site}...")
     
-    # Combine all content from the websites
-    combined_content = "\n\n".join(all_content)
+    # Get raw HTML
+    raw_html = get_raw_html(site)
     
-    # Summarize the content using LLM
-    st.subheader("Summarized Key Ideas from Each Website")
-    summarized_content = summarize_content(combined_content)
-    st.write(summarized_content)
+    # Check if there was an error
+    if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
+        st.error(raw_html)
+    else:
+        st.write(f"Raw HTML retrieved from {site}. Analyzing with Qwen LLM...\n")
+        
+        # Perform Qwen analysis
+        qwen_analysis = analyze_with_qwen(site, raw_html)
+        
+        # Display results
+        st.write(f"### Analysis from {site}:\n")
+        st.text_area(f"Analysis of {site}", qwen_analysis, height=300)
+
+    st.markdown("\n---\n")
