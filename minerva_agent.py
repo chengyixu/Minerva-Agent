@@ -41,7 +41,7 @@ def analyze_with_qwen(domain, raw_html):
     return response['output']['choices'][0]['message']['content']
 
 # Streamlit UI components
-st.title("Website Content Scraper & Analyzer")
+st.title("Minerva Agent: 提取各大信源的关键主题")   
 
 # List of default websites
 default_websites = [
@@ -52,7 +52,7 @@ default_websites = [
 ]
 
 # Input for user to add websites
-input_websites = st.text_area("Enter websites (comma separated)", 
+input_websites = st.text_area("网站地址(,区分)", 
                               value=', '.join(default_websites), 
                               height=100)
 
@@ -61,7 +61,7 @@ websites = [site.strip() for site in input_websites.split(',')]
 
 # Display results
 for site in websites:
-    st.write(f"### Scraping raw HTML from {site}...")
+    st.write(f"### 正在爬取 {site}...")
     
     # Get raw HTML
     raw_html = get_raw_html(site)
@@ -76,7 +76,7 @@ for site in websites:
         qwen_analysis = analyze_with_qwen(site, raw_html)
         
         # Display results
-        st.write(f"### Analysis from {site}:\n")
-        st.text_area(f"Analysis of {site}", qwen_analysis, height=300)
+        st.write(f"### {site}的分析:\n")
+        st.text_area(f" {site}", qwen_analysis, height=300)
 
     st.markdown("\n---\n")
