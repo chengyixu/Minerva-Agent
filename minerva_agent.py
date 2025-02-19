@@ -52,7 +52,7 @@ default_websites = [
 ]
 
 # Input for user to add websites
-input_websites = st.text_area("网站地址(,区分)", 
+input_websites = st.text_area("Website Domains(, Seperated)", 
                               value=', '.join(default_websites), 
                               height=100)
 
@@ -61,7 +61,7 @@ websites = [site.strip() for site in input_websites.split(',')]
 
 # Display results
 for site in websites:
-    st.write(f"### 正在爬取 {site}...")
+    st.write(f"### Pulling {site}...")
     
     # Get raw HTML
     raw_html = get_raw_html(site)
