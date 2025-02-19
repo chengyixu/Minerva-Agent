@@ -24,29 +24,34 @@ def fetch_website_content(url):
     except Exception as e:
         return f"Error fetching content: {e}"
 
-# Function to translate the content into Chinese using LLM
-def translate_to_chinese(content):
+# Function to summarize the content using LLM
+def summarize_content(content):
     api_key = "sk-1a28c3fcc7e044cbacd6faf47dc89755"
     client = OpenAI(
         api_key=api_key,
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
 
-    # Send the content to LLM for translation
-    completion = client.chat.completions.create(
-        model="qwen-plus",  # Example model
-        messages=[
-            {'role': 'system', 'content': 'You are a helpful assistant.'},
-            {'role': 'user', 'content': f"Please translate the following text into Chinese: {content}"}
-        ]
-    )
-    
-    # Correctly access the content from the response
-    translated_content = completion['choices'][0]['message']['content']
-    return translated_content
+    # Send the content to LLM for summarization
+    try:
+        completion = client.chat.completions.create(
+            model="qwen-plus",  # Example model
+            messages=[
+                {'role': 'system', 'content': 'You are a helpful assistant.'},
+                {'role': 'user', 'content': f"Please summarize the following content into the latest 10 key ideas in the format: '1. title, one-liner description, website name': {content}"}
+            ]
+        )
+        
+        # Correctly access the content from the response
+        summarized_content = completion['choices'][0]['message']['content']
+        return summarized_content
+
+    except Exception as e:
+        print(f"Error: {e}")  # Catch any other errors
+        return f"Error summarizing content: {e}"
 
 # Streamlit UI
-st.title("Website Content Analyzer")
+st.title("Website Content Analyzer and Summarizer")
 
 # URL selection
 st.sidebar.header("Select Websites to Analyze")
@@ -79,7 +84,7 @@ if st.button("Analyze Websites"):
     # Combine all content from the websites
     combined_content = "\n\n".join(all_content)
     
-    # Translate the combined contents into Chinese
-    st.subheader("Translated Content to Chinese")
-    translated_content = translate_to_chinese(combined_content)
-    st.write(translated_content)
+    # Summarize the content using LLM
+    st.subheader("Summarized Key Ideas from Each Website")
+    summarized_content = summarize_content(combined_content)
+    st.write(summarized_content)
