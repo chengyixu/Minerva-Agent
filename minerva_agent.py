@@ -76,7 +76,7 @@ for site in websites:
         qwen_analysis = analyze_with_qwen(site, raw_html)
         
         # Display results
-        st.write(f"### {site}µÄ·ÖÎö:\n")
+        st.write(f"### {site} Summary:\n")
         st.text_area(f" {site}", qwen_analysis, height=300)
 
     st.markdown("\n---\n")
