@@ -5,6 +5,8 @@ from firecrawl import FirecrawlApp
 
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
+x_api = "68Ht8QWPM68NDGEVqKw4gozGK"
+x_api_secret = "UWkfgwI6tryTEtKcJwasYTeYLep5DW8MzVxDEFLQGyUhPJYuRe"
 app = FirecrawlApp(api_key=fire_api)
 
 # Function to get raw HTML content from the websites using Firecrawl
