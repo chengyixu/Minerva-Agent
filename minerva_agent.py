@@ -1,17 +1,28 @@
 import streamlit as st
-import requests
 import datetime
 import dashscope
+from firecrawl import FirecrawlApp
 
-# Function to get raw HTML content from the websites
+# Initialize FirecrawlApp
+fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
+app = FirecrawlApp(api_key=fire_api)
+
+# Function to get raw HTML content from the websites using Firecrawl
 def get_raw_html(domain):
     try:
-        # Send request to the website and get the raw HTML content
-        response = requests.get(f'http://{domain}')
-        if response.status_code == 200:
-            return response.content
+        # Crawl the website using Firecrawl
+        crawl_status = app.crawl_url(
+            f'http://{domain}',
+            params={'limit': 100, 'scrapeOptions': {'formats': ['markdown', 'links']}},
+            poll_interval=30
+        )
+        
+        # Check if crawling was successful and return the result
+        if crawl_status['status'] == 'success':
+            return crawl_status['data']
         else:
-            return f"Failed to retrieve content from {domain}. HTTP Status Code: {response.status_code}"
+            return f"Failed to retrieve content from {domain}. Crawl Status: {crawl_status['status']}"
+    
     except Exception as e:
         return f"Error while fetching content from {domain}: {str(e)}"
 
@@ -27,7 +38,7 @@ def analyze_with_qwen(domain, raw_html):
         4. One-line descriptions in Chinese
         5. Website name
         Use current date: {datetime.date.today()}.
-        HTML Content: {raw_html.decode('utf-8')}
+        HTML Content: {raw_html}
         '''}
     ]
 
@@ -52,7 +63,7 @@ default_websites = [
 ]
 
 # Input for user to add websites
-input_websites = st.text_area("Website Domains(, Seperated)", 
+input_websites = st.text_area("Website Domains(, Separated)", 
                               value=', '.join(default_websites), 
                               height=100)
 

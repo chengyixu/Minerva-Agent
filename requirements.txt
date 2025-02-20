@@ -3,3 +3,4 @@ requests
 openai
 streamlit
 dashscope
+firecrawl
