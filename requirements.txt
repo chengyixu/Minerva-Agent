@@ -5,3 +5,5 @@ streamlit
 dashscope
 firecrawl
 snscrape
+config
+selenium
