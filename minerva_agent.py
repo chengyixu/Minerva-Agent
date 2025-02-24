@@ -58,9 +58,6 @@ st.title("Minerva Agent")
 # List of default websites
 default_websites = [
     "lilianweng.github.io",
-    "qbitai.com",
-    "jiqizhixin.com",
-    "x.com/deepseek_ai"
 ]
 
 # Input for user to add websites
