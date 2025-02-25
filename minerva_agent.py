@@ -9,7 +9,9 @@ app = FirecrawlApp(api_key=fire_api)
 
 # Initialize local factual knowledge storage if not already set
 if "local_facts" not in st.session_state:
-    st.session_state["local_facts"] = []  # This will store dicts with 'url' and 'desc'
+    st.session_state["local_facts"] = []  # To store sources with 'url' and 'desc'
+if "local_files" not in st.session_state:
+    st.session_state["local_files"] = []  # To store uploaded file info
 
 # Function to get raw HTML content from the websites using Firecrawl
 def get_raw_html(domain):
@@ -69,9 +71,14 @@ def chat_with_qwen(user_message):
 # Function for chat using local factual knowledge (事实信息库)
 def chat_with_local_facts(user_message):
     local_facts = st.session_state.get("local_facts", [])
+    local_files = st.session_state.get("local_files", [])
+    # Combine text sources and file info into one string
+    facts_text = ""
     if local_facts:
-        facts_text = "\n".join([f"{fact['url']} — {fact['desc']}" for fact in local_facts])
-    else:
+        facts_text += "【网址信息】\n" + "\n".join([f"{fact['url']} — {fact['desc']}" for fact in local_facts])
+    if local_files:
+        facts_text += "\n\n【上传文件】\n" + "\n".join([f"{file_info['file_name']}" for file_info in local_files])
+    if not facts_text:
         facts_text = "当前没有本地信息。"
     messages = [
         {"role": "system", "content": f"你是一个基于本地事实信息库的智能助手，以下是可供参考的本地信息：\n{facts_text}\n请在回答中尽可能基于这些事实。"},
@@ -116,7 +123,7 @@ with tabs[0]:
 with tabs[1]:
     st.header("定时汇报")
     st.write("定时整合汇报各大信息网站的重要内容")
-    st.info("开发中")
+    st.info("定时汇报功能开发中，敬请期待！")
     scheduled_time = st.time_input("选择汇报时间（例如每日定时）", datetime.time(hour=12, minute=0))
     st.write(f"当前设置的汇报时间为：{scheduled_time}")
 
@@ -125,7 +132,7 @@ with tabs[2]:
     st.header("事实知识库")
     st.write("作为本地的事实知识库，您可以随时添加各种类型的信息源，并支持可验证的 cross check")
     
-    # Form to add new information source
+    # Form to add new information source (URL + description)
     with st.form("add_source_form"):
         new_source = st.text_input("输入新信息源网址:")
         source_desc = st.text_area("信息源描述:")
@@ -134,12 +141,34 @@ with tabs[2]:
             st.session_state["local_facts"].append({"url": new_source, "desc": source_desc})
             st.success(f"信息源 {new_source} 已添加！")
     
+    st.markdown("---")
+    # Form to upload files
+    with st.form("upload_file_form", clear_on_submit=True):
+        uploaded_files = st.file_uploader("选择要上传的文件（支持所有格式）", accept_multiple_files=True)
+        file_submitted = st.form_submit_button("上传文件")
+        if file_submitted and uploaded_files:
+            for file in uploaded_files:
+                # Store file details in session_state
+                st.session_state["local_files"].append({
+                    "file_name": file.name,
+                    "file_bytes": file.getvalue()
+                })
+                st.success(f"文件 {file.name} 已上传！")
+    
     st.markdown("### 当前本地信息")
     if st.session_state["local_facts"]:
+        st.write("#### 网址信息")
         for idx, fact in enumerate(st.session_state["local_facts"], start=1):
             st.write(f"**{idx}.** {fact['url']}  — {fact['desc']}")
     else:
-        st.info("还没有添加任何本地信息。")
+        st.info("还没有添加任何网址信息。")
+    
+    if st.session_state["local_files"]:
+        st.write("#### 上传的文件")
+        for idx, file_info in enumerate(st.session_state["local_files"], start=1):
+            st.write(f"**{idx}.** {file_info['file_name']}")
+    else:
+        st.info("还没有上传任何文件。")
 
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
@@ -165,7 +194,6 @@ with tabs[3]:
                 reply = chat_with_local_facts(chat_input)
             st.session_state["chat_history"].append({"role": "assistant", "content": reply})
     
-    # Display chat history
     st.markdown("### 聊天记录")
     for message in st.session_state["chat_history"]:
         if message["role"] == "user":
