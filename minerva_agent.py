@@ -67,7 +67,7 @@ def chat_with_qwen(user_message):
     return response['output']['choices'][0]['message']['content']
 
 # Streamlit UI components
-st.title("Minerva Agent - 信息监控、汇报与知识库")
+st.title("Minerva Agent")
 
 # Create four tabs for different functionalities
 tabs = st.tabs(["热点监控", "定时汇报", "事实知识库", "直接聊天"])
