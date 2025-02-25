@@ -99,7 +99,7 @@ def chat_with_local_facts(user_message):
 def chat_with_deepseek(user_message):
     # 使用公开 API，参考文档中的示例
     client = OpenAI(
-        api_key=os.getenv("sk-1a28c3fcc7e044cbacd6faf47dc89755"),
+        api_key=os.getenv("DASHSCOPE_API_KEY", "sk-1a28c3fcc7e044cbacd6faf47dc89755"),
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
     messages = [
