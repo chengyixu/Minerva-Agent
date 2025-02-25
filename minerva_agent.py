@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import streamlit as st
 import datetime
 import dashscope
@@ -52,52 +50,52 @@ def analyze_with_qwen(domain, raw_html):
     return response['output']['choices'][0]['message']['content']
 
 # Streamlit UI components
-st.title("Minerva Agent - ��Ϣ�����֪ʶ��")
+st.title("Minerva Agent - 信息监控与知识库")
 
 # Create three tabs for different functionalities
-tabs = st.tabs(["�ȵ���", "��ʱ�㱨", "��ʵ֪ʶ��"])
+tabs = st.tabs(["热点监控", "定时汇报", "事实知识库"])
 
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
-    st.header("�ȵ���")
-    st.write("��������ĸ�����Ϣ��վ���ȵ�")
+    st.header("热点监控")
+    st.write("监控推流的各大信息网站的热点")
     default_websites = ["lilianweng.github.io"]
-    input_websites = st.text_area("��վ���� (���ŷָ�):", value=', '.join(default_websites), height=100)
+    input_websites = st.text_area("网站域名 (逗号分隔):", value=', '.join(default_websites), height=100)
     websites = [site.strip() for site in input_websites.split(',')]
     
-    if st.button("��ʼ���"):
+    if st.button("开始监控"):
         for site in websites:
-            st.write(f"### ������ȡ {site} ������...")
+            st.write(f"### 正在拉取 {site} 的数据...")
             # Get raw HTML using Firecrawl
             raw_html = get_raw_html(site)
             if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
                 st.error(raw_html)
             else:
-                st.write("������ȡ�ɹ������ڷ����ȵ�����...")
+                st.write("数据拉取成功，正在分析热点内容...")
                 analysis = analyze_with_qwen(site, raw_html)
-                st.text_area(f"{site} �ȵ����", analysis, height=300)
+                st.text_area(f"{site} 热点分析", analysis, height=300)
             st.markdown("---")
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
-    st.header("��ʱ�㱨")
-    st.write("��ʱ���ϻ㱨������Ϣ��վ����Ҫ����")
+    st.header("定时汇报")
+    st.write("定时整合汇报各大信息网站的重要内容")
     # Placeholder for scheduling settings
-    st.info("��ʱ�㱨���ܿ����У������ڴ���")
+    st.info("定时汇报功能开发中，敬请期待！")
     # Example placeholder: scheduling time input
-    scheduled_time = st.time_input("ѡ��㱨ʱ�䣨����ÿ�ն�ʱ��", datetime.time(hour=12, minute=0))
-    st.write(f"��ǰ���õĻ㱨ʱ��Ϊ��{scheduled_time}")
+    scheduled_time = st.time_input("选择汇报时间（例如每日定时）", datetime.time(hour=12, minute=0))
+    st.write(f"当前设置的汇报时间为：{scheduled_time}")
 
 # ----------------------- Tab 3: Local Factual Knowledge Base -----------------------
 with tabs[2]:
-    st.header("��ʵ֪ʶ��")
-    st.write("��Ϊ���ص���ʵ֪ʶ�⣬��������ʱ���Ӹ������͵���ϢԴ����֧�ֿ���֤�� cross check")
+    st.header("事实知识库")
+    st.write("作为本地的事实知识库，您可以随时添加各种类型的信息源，并支持可验证的 cross check")
     # Placeholder for adding new sources
     with st.form("add_source_form"):
-        new_source = st.text_input("��������ϢԴ��ַ:")
-        source_desc = st.text_area("��ϢԴ����:")
-        submitted = st.form_submit_button("������ϢԴ")
+        new_source = st.text_input("输入新信息源网址:")
+        source_desc = st.text_area("信息源描述:")
+        submitted = st.form_submit_button("添加信息源")
         if submitted:
             # Placeholder for adding the new source to the knowledge base
-            st.success(f"��ϢԴ {new_source} �����ӣ�")
-            st.write("���˴���ʵ�ֽ�����ϢԴ���浽���ݿ�򱾵ش洢�Ĺ��ܣ�")
+            st.success(f"信息源 {new_source} 已添加！")
+            st.write("（此处可实现将新信息源保存到数据库或本地存储的功能）")
