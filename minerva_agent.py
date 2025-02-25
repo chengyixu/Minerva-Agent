@@ -3,7 +3,7 @@ import datetime
 import dashscope
 from firecrawl import FirecrawlApp
 import os
-from openai import OpenAI  # 新增
+from openai import OpenAI 
 
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
@@ -11,11 +11,11 @@ app = FirecrawlApp(api_key=fire_api)
 
 # Initialize local factual knowledge storage if not already set
 if "local_facts" not in st.session_state:
-    st.session_state["local_facts"] = []  # To store sources with 'url' and 'desc'
+    st.session_state["local_facts"] = []  # Will store dicts for websites with keys: type, url, desc, content
 if "local_files" not in st.session_state:
-    st.session_state["local_files"] = []  # To store uploaded file info
+    st.session_state["local_files"] = []  # Will store dicts for files with keys: type, file_name, content
 
-# Function to get raw HTML content from the websites using Firecrawl
+# Function to get raw HTML content from a website using Firecrawl
 def get_raw_html(domain):
     try:
         crawl_status = app.crawl_url(
@@ -24,6 +24,7 @@ def get_raw_html(domain):
             poll_interval=30
         )
         if crawl_status['success'] and crawl_status['status'] == 'completed':
+            # Assuming the first data entry holds the content in markdown
             markdown_content = crawl_status['data'][0]['markdown']
             return markdown_content
         else:
@@ -70,20 +71,23 @@ def chat_with_qwen(user_message):
     )
     return response['output']['choices'][0]['message']['content']
 
-# Function for chat using local factual knowledge (事实信息库)
+# UPDATED: Function for chat using local factual knowledge (RAG)
 def chat_with_local_facts(user_message):
     local_facts = st.session_state.get("local_facts", [])
     local_files = st.session_state.get("local_files", [])
-    # Combine text sources and file info into one string
-    facts_text = ""
-    if local_facts:
-        facts_text += "【网址信息】\n" + "\n".join([f"{fact['url']} — {fact['desc']}" for fact in local_facts])
-    if local_files:
-        facts_text += "\n\n【上传文件】\n" + "\n".join([f"{file_info['file_name']}" for file_info in local_files])
-    if not facts_text:
-        facts_text = "当前没有本地信息。"
+    
+    # Build a context string from each stored source – here we simply take the first 1000 characters per source
+    context_text = ""
+    for source in local_facts:
+        context_text += f"【网站】 {source['url']}\n{source['content'][:1000]}\n"
+    for file_info in local_files:
+        context_text += f"【文件】 {file_info['file_name']}\n{file_info['content'][:1000]}\n"
+    
+    if not context_text:
+        context_text = "当前没有本地信息。"
+        
     messages = [
-        {"role": "system", "content": f"你是一个基于本地事实信息库的智能助手，以下是可供参考的本地信息：\n{facts_text}\n请在回答中尽可能基于这些事实。"},
+        {"role": "system", "content": f"你是一个基于本地事实知识库的智能助手。以下是部分文档内容用于辅助回答问题：\n{context_text}\n请基于这些内容回答用户问题。"},
         {"role": "user", "content": user_message},
     ]
     response = dashscope.Generation.call(
@@ -95,9 +99,8 @@ def chat_with_local_facts(user_message):
     )
     return response['output']['choices'][0]['message']['content']
 
-# 新增：Function for direct chat using Deepseek model
+# Function for direct chat using Deepseek model
 def chat_with_deepseek(user_message):
-    # 使用公开 API，参考文档中的示例
     client = OpenAI(
         api_key=os.getenv("DASHSCOPE_API_KEY", "sk-1a28c3fcc7e044cbacd6faf47dc89755"),
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
@@ -112,11 +115,11 @@ def chat_with_deepseek(user_message):
     )
     return completion.choices[0].message.content
 
-# Streamlit UI components
+# ----------------------- Streamlit UI -----------------------
 st.title("Minerva Agent")
 
 # Create four tabs for different functionalities
-tabs = st.tabs(["热点监控", "定时汇报", "事实知识库", "直接聊天"])
+tabs = st.tabs(["热点监控", "定时汇报", "事实知识库 (RAG)", "直接聊天"])
 
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
@@ -146,41 +149,59 @@ with tabs[1]:
     scheduled_time = st.time_input("选择汇报时间（例如每日定时）", datetime.time(hour=12, minute=0))
     st.write(f"当前设置的汇报时间为：{scheduled_time}")
 
-# ----------------------- Tab 3: Local Factual Knowledge Base -----------------------
+# ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[2]:
-    st.header("事实知识库")
-    st.write("作为本地的事实知识库，您可以随时添加各种类型的信息源，并支持可验证的 cross check")
+    st.header("事实知识库 (RAG)")
+    st.write("上传文件或添加网站，系统会提取内容，并在聊天时基于这些信息进行回答。")
     
-    # Form to add new information source (URL + description)
+    # Form to add a new website source – it immediately fetches and stores content.
     with st.form("add_source_form"):
         new_source = st.text_input("输入新信息源网址:")
         source_desc = st.text_area("信息源描述:")
         submitted = st.form_submit_button("添加信息源")
         if submitted and new_source:
-            st.session_state["local_facts"].append({"url": new_source, "desc": source_desc})
-            st.success(f"信息源 {new_source} 已添加！")
+            st.info(f"正在从 {new_source} 抓取内容...")
+            # Remove potential protocol parts for get_raw_html function
+            domain = new_source.replace("https://", "").replace("http://", "").strip()
+            raw_content = get_raw_html(domain)
+            st.session_state["local_facts"].append({
+                "type": "website",
+                "url": new_source,
+                "desc": source_desc,
+                "content": raw_content
+            })
+            st.success(f"信息源 {new_source} 已添加，并提取内容！")
     
     st.markdown("---")
-    # Form to upload files
+    # Form to upload files – the app processes and extracts text content.
     with st.form("upload_file_form", clear_on_submit=True):
         uploaded_files = st.file_uploader("选择要上传的文件（支持所有格式）", accept_multiple_files=True)
         file_submitted = st.form_submit_button("上传文件")
         if file_submitted and uploaded_files:
             for file in uploaded_files:
-                # Store file details in session_state
-                st.session_state["local_files"].append({
-                    "file_name": file.name,
-                    "file_bytes": file.getvalue()
-                })
-                st.success(f"文件 {file.name} 已上传！")
+                try:
+                    file_bytes = file.getvalue()
+                    # 尝试解码为 UTF-8 文本
+                    try:
+                        file_text = file_bytes.decode("utf-8")
+                    except Exception:
+                        file_text = str(file_bytes)
+                    st.session_state["local_files"].append({
+                        "type": "file",
+                        "file_name": file.name,
+                        "content": file_text
+                    })
+                    st.success(f"文件 {file.name} 已上传并处理！")
+                except Exception as e:
+                    st.error(f"处理文件 {file.name} 时出错：{e}")
     
     st.markdown("### 当前本地信息")
     if st.session_state["local_facts"]:
-        st.write("#### 网址信息")
+        st.write("#### 网站信息")
         for idx, fact in enumerate(st.session_state["local_facts"], start=1):
-            st.write(f"**{idx}.** {fact['url']}  — {fact['desc']}")
+            st.write(f"**{idx}.** {fact['url']} — {fact['desc']}")
     else:
-        st.info("还没有添加任何网址信息。")
+        st.info("还没有添加任何网站信息。")
     
     if st.session_state["local_files"]:
         st.write("#### 上传的文件")
@@ -192,9 +213,9 @@ with tabs[2]:
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
     st.header("直接聊天")
-    st.write("基于现有的 Qwen 大模型、本地知识库和 Deepseek 模型，您可以直接与 AI 进行对话。")
+    st.write("基于 Qwen、大模型、本地知识库 (RAG) 以及 Deepseek 模型，您可以直接与 AI 进行对话。")
     
-    # 选择聊天模式：增加了 Deepseek 聊天选项
+    # 选择聊天模式：包含 Qwen、本地知识库 (RAG) 和 Deepseek 聊天选项
     chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天", "Deepseek聊天"))
     
     # Maintain conversation history in session state
