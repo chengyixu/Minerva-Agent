@@ -126,20 +126,18 @@ with tabs[3]:
     st.header("直接聊天")
     st.write("基于现有的 Qwen 大模型，您可以直接与 AI 进行对话。")
     
-    # Optionally, maintain conversation history
+    # Maintain conversation history in session state
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
     
-    # Chat input and display
-    chat_input = st.text_input("输入您的消息：", key="chat_input")
-    if st.button("发送"):
-        if chat_input:
-            # Append user message to history
+    # Chat input form (clears on submit)
+    with st.form("chat_form", clear_on_submit=True):
+        chat_input = st.text_input("输入您的消息：")
+        submitted = st.form_submit_button("发送")
+        if submitted and chat_input:
             st.session_state["chat_history"].append({"role": "user", "content": chat_input})
-            # Get AI reply
             reply = chat_with_qwen(chat_input)
             st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-            st.experimental_rerun()
     
     # Display chat history
     st.markdown("### 聊天记录")
