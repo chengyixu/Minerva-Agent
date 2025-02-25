@@ -2,6 +2,8 @@ import streamlit as st
 import datetime
 import dashscope
 from firecrawl import FirecrawlApp
+import os
+from openai import OpenAI  # 新增
 
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
@@ -93,6 +95,23 @@ def chat_with_local_facts(user_message):
     )
     return response['output']['choices'][0]['message']['content']
 
+# 新增：Function for direct chat using Deepseek model
+def chat_with_deepseek(user_message):
+    # 使用公开 API，参考文档中的示例
+    client = OpenAI(
+        api_key=os.getenv("sk-1a28c3fcc7e044cbacd6faf47dc89755"),
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": user_message},
+    ]
+    completion = client.chat.completions.create(
+        model="deepseek-r1",  # 使用 deepseek 模型
+        messages=messages
+    )
+    return completion.choices[0].message.content
+
 # Streamlit UI components
 st.title("Minerva Agent")
 
@@ -173,10 +192,10 @@ with tabs[2]:
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
     st.header("直接聊天")
-    st.write("基于现有的 Qwen 大模型，您可以直接与 AI 进行对话。")
+    st.write("基于现有的 Qwen 大模型、本地知识库和 Deepseek 模型，您可以直接与 AI 进行对话。")
     
-    # Choose chat mode: Standard Qwen vs. 基于本地事实聊天
-    chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天"))
+    # 选择聊天模式：增加了 Deepseek 聊天选项
+    chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天", "Deepseek聊天"))
     
     # Maintain conversation history in session state
     if "chat_history" not in st.session_state:
@@ -190,8 +209,10 @@ with tabs[3]:
             st.session_state["chat_history"].append({"role": "user", "content": chat_input})
             if chat_mode == "Qwen聊天":
                 reply = chat_with_qwen(chat_input)
-            else:
+            elif chat_mode == "本地知识聊天":
                 reply = chat_with_local_facts(chat_input)
+            elif chat_mode == "Deepseek聊天":
+                reply = chat_with_deepseek(chat_input)
             st.session_state["chat_history"].append({"role": "assistant", "content": reply})
     
     st.markdown("### 聊天记录")
