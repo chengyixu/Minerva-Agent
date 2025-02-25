@@ -213,10 +213,10 @@ with tabs[2]:
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
     st.header("直接聊天")
-    st.write("基于 Qwen、大模型、本地知识库 (RAG) 以及 Deepseek 模型，您可以直接与 AI 进行对话。")
+    st.write("基于 Qwen、大模型、本地信息库以及 Deepseek 模型，您可以直接与 AI 进行对话。")
     
     # 选择聊天模式：包含 Qwen、本地知识库 (RAG) 和 Deepseek 聊天选项
-    chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天", "Deepseek聊天"))
+    chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天(Qwen)", "Deepseek聊天"))
     
     # Maintain conversation history in session state
     if "chat_history" not in st.session_state:
@@ -230,7 +230,7 @@ with tabs[3]:
             st.session_state["chat_history"].append({"role": "user", "content": chat_input})
             if chat_mode == "Qwen聊天":
                 reply = chat_with_qwen(chat_input)
-            elif chat_mode == "本地知识聊天":
+            elif chat_mode == "本地知识聊天(Qwen)":
                 reply = chat_with_local_facts(chat_input)
             elif chat_mode == "Deepseek聊天":
                 reply = chat_with_deepseek(chat_input)
