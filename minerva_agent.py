@@ -59,7 +59,7 @@ def chat_with_qwen(user_message):
     ]
     response = dashscope.Generation.call(
         api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
-        model="qwen-max",
+        model="deepseek-r1",
         messages=messages,
         enable_search=True,
         result_format='message'
