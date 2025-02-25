@@ -7,17 +7,19 @@ from firecrawl import FirecrawlApp
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
 app = FirecrawlApp(api_key=fire_api)
 
+# Initialize local factual knowledge storage if not already set
+if "local_facts" not in st.session_state:
+    st.session_state["local_facts"] = []  # This will store dicts with 'url' and 'desc'
+
 # Function to get raw HTML content from the websites using Firecrawl
 def get_raw_html(domain):
     try:
-        # Use Firecrawl to crawl the website
         crawl_status = app.crawl_url(
-            f'https://{domain}', 
+            f'https://{domain}',
             params={'limit': 100, 'scrapeOptions': {'formats': ['markdown', 'links']}},
             poll_interval=30
         )
         if crawl_status['success'] and crawl_status['status'] == 'completed':
-            # Firecrawl response contains markdown content, you can retrieve it
             markdown_content = crawl_status['data'][0]['markdown']
             return markdown_content
         else:
@@ -25,7 +27,7 @@ def get_raw_html(domain):
     except Exception as e:
         return f"Error while fetching content from {domain}: {str(e)}"
 
-# Function to prepare the message for Qwen LLM analysis
+# Function to analyze content with Qwen model (for topics analysis)
 def analyze_with_qwen(domain, raw_html):
     messages = [
         {'role': 'system', 'content': 'You are a professional AI researcher. Analyze the raw HTML content and extract key topics in the following format: "1. Description | Website"'},
@@ -49,11 +51,26 @@ def analyze_with_qwen(domain, raw_html):
     )
     return response['output']['choices'][0]['message']['content']
 
-# Streamlit UI components
-st.title("Minerva Agent - 信息监控与知识库")
+# Function for direct chat using Qwen
+def chat_with_qwen(user_message):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": user_message},
+    ]
+    response = dashscope.Generation.call(
+        api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
+        model="qwen-max",
+        messages=messages,
+        enable_search=True,
+        result_format='message'
+    )
+    return response['output']['choices'][0]['message']['content']
 
-# Create three tabs for different functionalities
-tabs = st.tabs(["热点监控", "定时汇报", "事实知识库"])
+# Streamlit UI components
+st.title("Minerva Agent - 信息监控、汇报与知识库")
+
+# Create four tabs for different functionalities
+tabs = st.tabs(["热点监控", "定时汇报", "事实知识库", "直接聊天"])
 
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
@@ -66,7 +83,6 @@ with tabs[0]:
     if st.button("开始监控"):
         for site in websites:
             st.write(f"### 正在拉取 {site} 的数据...")
-            # Get raw HTML using Firecrawl
             raw_html = get_raw_html(site)
             if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
                 st.error(raw_html)
@@ -80,9 +96,7 @@ with tabs[0]:
 with tabs[1]:
     st.header("定时汇报")
     st.write("定时整合汇报各大信息网站的重要内容")
-    # Placeholder for scheduling settings
     st.info("定时汇报功能开发中，敬请期待！")
-    # Example placeholder: scheduling time input
     scheduled_time = st.time_input("选择汇报时间（例如每日定时）", datetime.time(hour=12, minute=0))
     st.write(f"当前设置的汇报时间为：{scheduled_time}")
 
@@ -90,12 +104,47 @@ with tabs[1]:
 with tabs[2]:
     st.header("事实知识库")
     st.write("作为本地的事实知识库，您可以随时添加各种类型的信息源，并支持可验证的 cross check")
-    # Placeholder for adding new sources
+    
+    # Form to add new information source
     with st.form("add_source_form"):
         new_source = st.text_input("输入新信息源网址:")
         source_desc = st.text_area("信息源描述:")
         submitted = st.form_submit_button("添加信息源")
-        if submitted:
-            # Placeholder for adding the new source to the knowledge base
+        if submitted and new_source:
+            st.session_state["local_facts"].append({"url": new_source, "desc": source_desc})
             st.success(f"信息源 {new_source} 已添加！")
-            st.write("（此处可实现将新信息源保存到数据库或本地存储的功能）")
+    
+    st.markdown("### 当前本地信息")
+    if st.session_state["local_facts"]:
+        for idx, fact in enumerate(st.session_state["local_facts"], start=1):
+            st.write(f"**{idx}.** {fact['url']}  — {fact['desc']}")
+    else:
+        st.info("还没有添加任何本地信息。")
+
+# ----------------------- Tab 4: Direct Chat -----------------------
+with tabs[3]:
+    st.header("直接聊天")
+    st.write("基于现有的 Qwen 大模型，您可以直接与 AI 进行对话。")
+    
+    # Optionally, maintain conversation history
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+    
+    # Chat input and display
+    chat_input = st.text_input("输入您的消息：", key="chat_input")
+    if st.button("发送"):
+        if chat_input:
+            # Append user message to history
+            st.session_state["chat_history"].append({"role": "user", "content": chat_input})
+            # Get AI reply
+            reply = chat_with_qwen(chat_input)
+            st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+            st.experimental_rerun()
+    
+    # Display chat history
+    st.markdown("### 聊天记录")
+    for message in st.session_state["chat_history"]:
+        if message["role"] == "user":
+            st.markdown(f"**您:** {message['content']}")
+        else:
+            st.markdown(f"**AI:** {message['content']}")
