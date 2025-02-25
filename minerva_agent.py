@@ -51,7 +51,7 @@ def analyze_with_qwen(domain, raw_html):
     )
     return response['output']['choices'][0]['message']['content']
 
-# Function for direct chat using Qwen
+# Function for direct chat using Qwen (standard mode)
 def chat_with_qwen(user_message):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -66,8 +66,28 @@ def chat_with_qwen(user_message):
     )
     return response['output']['choices'][0]['message']['content']
 
+# Function for chat using local factual knowledge (事实信息库)
+def chat_with_local_facts(user_message):
+    local_facts = st.session_state.get("local_facts", [])
+    if local_facts:
+        facts_text = "\n".join([f"{fact['url']} — {fact['desc']}" for fact in local_facts])
+    else:
+        facts_text = "当前没有本地信息。"
+    messages = [
+        {"role": "system", "content": f"你是一个基于本地事实信息库的智能助手，以下是可供参考的本地信息：\n{facts_text}\n请在回答中尽可能基于这些事实。"},
+        {"role": "user", "content": user_message},
+    ]
+    response = dashscope.Generation.call(
+        api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
+        model="qwen-max",
+        messages=messages,
+        enable_search=True,
+        result_format='message'
+    )
+    return response['output']['choices'][0]['message']['content']
+
 # Streamlit UI components
-st.title("Minerva Agent")
+st.title("Minerva Agent - 信息监控、汇报与知识库")
 
 # Create four tabs for different functionalities
 tabs = st.tabs(["热点监控", "定时汇报", "事实知识库", "直接聊天"])
@@ -126,6 +146,9 @@ with tabs[3]:
     st.header("直接聊天")
     st.write("基于现有的 Qwen 大模型，您可以直接与 AI 进行对话。")
     
+    # Choose chat mode: Standard Qwen vs. 基于本地事实聊天
+    chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天"))
+    
     # Maintain conversation history in session state
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
@@ -136,7 +159,10 @@ with tabs[3]:
         submitted = st.form_submit_button("发送")
         if submitted and chat_input:
             st.session_state["chat_history"].append({"role": "user", "content": chat_input})
-            reply = chat_with_qwen(chat_input)
+            if chat_mode == "Qwen聊天":
+                reply = chat_with_qwen(chat_input)
+            else:
+                reply = chat_with_local_facts(chat_input)
             st.session_state["chat_history"].append({"role": "assistant", "content": reply})
     
     # Display chat history
