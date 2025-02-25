@@ -44,7 +44,7 @@ def analyze_with_qwen(domain, raw_html):
     ]
     response = dashscope.Generation.call(
         api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
-        model="qwen-max",
+        model="qwen-turbo",
         messages=messages,
         enable_search=True,
         result_format='message'
@@ -59,7 +59,7 @@ def chat_with_qwen(user_message):
     ]
     response = dashscope.Generation.call(
         api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
-        model="deepseek-r1",
+        model="qwen-turbo",
         messages=messages,
         enable_search=True,
         result_format='message'
@@ -79,7 +79,7 @@ def chat_with_local_facts(user_message):
     ]
     response = dashscope.Generation.call(
         api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
-        model="qwen-max",
+        model="qwen-turbo",
         messages=messages,
         enable_search=True,
         result_format='message'
