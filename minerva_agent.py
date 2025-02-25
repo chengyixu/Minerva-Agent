@@ -52,52 +52,52 @@ def analyze_with_qwen(domain, raw_html):
     return response['output']['choices'][0]['message']['content']
 
 # Streamlit UI components
-st.title("Minerva Agent - ÐÅÏ¢¼à¿ØÓëÖªÊ¶¿â")
+st.title("Minerva Agent - ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ÖªÊ¶ï¿½ï¿½")
 
 # Create three tabs for different functionalities
-tabs = st.tabs(["ÈÈµã¼à¿Ø", "¶¨Ê±»ã±¨", "ÊÂÊµÖªÊ¶¿â"])
+tabs = st.tabs(["ï¿½Èµï¿½ï¿½ï¿½", "ï¿½ï¿½Ê±ï¿½ã±¨", "ï¿½ï¿½ÊµÖªÊ¶ï¿½ï¿½"])
 
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
-    st.header("ÈÈµã¼à¿Ø")
-    st.write("¼à¿ØÍÆÁ÷µÄ¸÷´óÐÅÏ¢ÍøÕ¾µÄÈÈµã")
+    st.header("ï¿½Èµï¿½ï¿½ï¿½")
+    st.write("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½Èµï¿½")
     default_websites = ["lilianweng.github.io"]
-    input_websites = st.text_area("ÍøÕ¾ÓòÃû (¶ººÅ·Ö¸ô):", value=', '.join(default_websites), height=100)
+    input_websites = st.text_area("ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½Å·Ö¸ï¿½):", value=', '.join(default_websites), height=100)
     websites = [site.strip() for site in input_websites.split(',')]
     
-    if st.button("¿ªÊ¼¼à¿Ø"):
+    if st.button("ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½"):
         for site in websites:
-            st.write(f"### ÕýÔÚÀ­È¡ {site} µÄÊý¾Ý...")
+            st.write(f"### ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ {site} ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½...")
             # Get raw HTML using Firecrawl
             raw_html = get_raw_html(site)
             if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
                 st.error(raw_html)
             else:
-                st.write("Êý¾ÝÀ­È¡³É¹¦£¬ÕýÔÚ·ÖÎöÈÈµãÄÚÈÝ...")
+                st.write("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ï¿½ï¿½Èµï¿½ï¿½ï¿½ï¿½ï¿½...")
                 analysis = analyze_with_qwen(site, raw_html)
-                st.text_area(f"{site} ÈÈµã·ÖÎö", analysis, height=300)
+                st.text_area(f"{site} ï¿½Èµï¿½ï¿½ï¿½ï¿½", analysis, height=300)
             st.markdown("---")
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
-    st.header("¶¨Ê±»ã±¨")
-    st.write("¶¨Ê±ÕûºÏ»ã±¨¸÷´óÐÅÏ¢ÍøÕ¾µÄÖØÒªÄÚÈÝ")
+    st.header("ï¿½ï¿½Ê±ï¿½ã±¨")
+    st.write("ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ï»ã±¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½")
     # Placeholder for scheduling settings
-    st.info("¶¨Ê±»ã±¨¹¦ÄÜ¿ª·¢ÖÐ£¬¾´ÇëÆÚ´ý£¡")
+    st.info("ï¿½ï¿½Ê±ï¿½ã±¨ï¿½ï¿½ï¿½Ü¿ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½")
     # Example placeholder: scheduling time input
-    scheduled_time = st.time_input("Ñ¡Ôñ»ã±¨Ê±¼ä£¨ÀýÈçÃ¿ÈÕ¶¨Ê±£©", datetime.time(hour=12, minute=0))
-    st.write(f"µ±Ç°ÉèÖÃµÄ»ã±¨Ê±¼äÎª£º{scheduled_time}")
+    scheduled_time = st.time_input("Ñ¡ï¿½ï¿½ã±¨Ê±ï¿½ä£¨ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½Õ¶ï¿½Ê±ï¿½ï¿½", datetime.time(hour=12, minute=0))
+    st.write(f"ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ÃµÄ»ã±¨Ê±ï¿½ï¿½Îªï¿½ï¿½{scheduled_time}")
 
 # ----------------------- Tab 3: Local Factual Knowledge Base -----------------------
 with tabs[2]:
-    st.header("ÊÂÊµÖªÊ¶¿â")
-    st.write("×÷Îª±¾µØµÄÊÂÊµÖªÊ¶¿â£¬Äú¿ÉÒÔËæÊ±Ìí¼Ó¸÷ÖÖÀàÐÍµÄÐÅÏ¢Ô´£¬²¢Ö§³Ö¿ÉÑéÖ¤µÄ cross check")
+    st.header("ï¿½ï¿½ÊµÖªÊ¶ï¿½ï¿½")
+    st.write("ï¿½ï¿½Îªï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ÊµÖªÊ¶ï¿½â£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ó¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ï¢Ô´ï¿½ï¿½ï¿½ï¿½Ö§ï¿½Ö¿ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½ cross check")
     # Placeholder for adding new sources
     with st.form("add_source_form"):
-        new_source = st.text_input("ÊäÈëÐÂÐÅÏ¢Ô´ÍøÖ·:")
-        source_desc = st.text_area("ÐÅÏ¢Ô´ÃèÊö:")
-        submitted = st.form_submit_button("Ìí¼ÓÐÅÏ¢Ô´")
+        new_source = st.text_input("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ô´ï¿½ï¿½Ö·:")
+        source_desc = st.text_area("ï¿½ï¿½Ï¢Ô´ï¿½ï¿½ï¿½ï¿½:")
+        submitted = st.form_submit_button("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ô´")
         if submitted:
             # Placeholder for adding the new source to the knowledge base
-            st.success(f"ÐÅÏ¢Ô´ {new_source} ÒÑÌí¼Ó£¡")
-            st.write("£¨´Ë´¦¿ÉÊµÏÖ½«ÐÂÐÅÏ¢Ô´±£´æµ½Êý¾Ý¿â»ò±¾µØ´æ´¢µÄ¹¦ÄÜ£©")
+            st.success(f"ï¿½ï¿½Ï¢Ô´ {new_source} ï¿½ï¿½ï¿½ï¿½ï¿½Ó£ï¿½")
+            st.write("ï¿½ï¿½ï¿½Ë´ï¿½ï¿½ï¿½Êµï¿½Ö½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ô´ï¿½ï¿½ï¿½æµ½ï¿½ï¿½ï¿½Ý¿ï¿½ò±¾µØ´æ´¢ï¿½Ä¹ï¿½ï¿½Ü£ï¿½")
