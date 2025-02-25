@@ -116,7 +116,7 @@ with tabs[0]:
 with tabs[1]:
     st.header("定时汇报")
     st.write("定时整合汇报各大信息网站的重要内容")
-    st.info("定时汇报功能开发中，敬请期待！")
+    st.info("开发中")
     scheduled_time = st.time_input("选择汇报时间（例如每日定时）", datetime.time(hour=12, minute=0))
     st.write(f"当前设置的汇报时间为：{scheduled_time}")
 
