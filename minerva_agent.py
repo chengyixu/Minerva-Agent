@@ -151,7 +151,7 @@ with tabs[1]:
 
 # ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[2]:
-    st.header("事实知识库 (RAG)")
+    st.header("事实知识库")
     st.write("上传文件或添加网站，系统会提取内容，并在聊天时基于这些信息进行回答。")
     
     # Form to add a new website source – it immediately fetches and stores content.
