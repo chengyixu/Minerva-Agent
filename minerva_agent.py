@@ -9,6 +9,8 @@ from apify_client import ApifyClient  # Added for X/Twitter scraping
 import json
 import time
 from datetime import datetime, timedelta
+import csv
+
 
 # Initialize session state variables
 if "local_facts" not in st.session_state:
@@ -428,7 +430,7 @@ with tabs[0]:
         
         # Options for scraping
         top_influencers = ["sama", "ylecun", "AndrewYNg", "fchollet", "karpathy", "demishassabis", "drfeifei", "geoffreyhinton", "goodside", "EMostaque"]
-        selected_handles = st.multiselect("选择要监控的Twitter账号 (最多10个):", options=top_influencers, default=top_influencers[:3])
+        selected_handles = st.multiselect("选择要监控的Twitter账号,正在开发无需设置的总结功能):", options=top_influencers, default=top_influencers[:3])
         
         # Limit the number of selected handles
         max_handles = min(len(selected_handles) if selected_handles else 3, 10)
