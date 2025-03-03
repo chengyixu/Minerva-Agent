@@ -10,6 +10,8 @@ import json
 import time
 from datetime import datetime, timedelta
 import csv
+from datetime import datetime, timedelta
+
 # Initialize session state variables
 if "local_facts" not in st.session_state:
     st.session_state["local_facts"] = []
@@ -51,7 +53,7 @@ def analyze_with_qwen(domain, raw_html):
         1. Article titles in Chinese
         2. One-line descriptions in Chinese
         3. Website name
-        Use current date: {datetime.date.today()}.
+        Use current date: {dt.datetime.today().date()}.
         HTML Content: {raw_html}
         '''}
     ]
