@@ -93,19 +93,25 @@ def get_raw_html_for_weixin(full_url):
 def get_weixin_articles(fakeid, account_name):
     # 目标url
     url = "https://mp.weixin.qq.com/cgi-bin/appmsg"
+    
+    # 注意：WeChat cookies经常过期，可能需要定期更新
     cookie = "appmsglist_action_3918520287=card; rewardsn=; wxtokenkey=777; pac_uid=0_WFRCchx025Cww; *qimei*uuid42=191090f32121004a40ded1e5e650d9677d9210f8fb; *qimei*h38=e963446740ded1e5e650d96703000003119109; *qimei*q36=; ua_id=fIxXt1qo3N1AkUI9AAAAAE7bKLDM8dls2W8RivxiLs4=; wxuin=36409384414630; suid=user_0_WFRCchx025Cww; mm_lang=zh_CN; sig=h016ff31a4a1ff5262376ab723fd8d807ea82f9552e933b7d087ca0bd6cd2ce703cdaaf9f90ae8c1544; ab.storage.deviceId.f9c2b69f-2136-44e0-a55a-dff72d99aa19=g%3AYoJZqng6gcdvly5aBDxZqgiJ1GZ2%7Ce%3Aundefined%7Cc%3A1739462526631%7Cl%3A1739462526631; ab.storage.sessionId.f9c2b69f-2136-44e0-a55a-dff72d99aa19=g%3A7bafc696-6715-6e6b-565d-5695541d32ca%7Ce%3A1739464326655%7Cc%3A1739462526656%7Cl%3A1739462526656; *qimei*fingerprint=d91ba6f60a0e30a68c3644052fa00145; uuid=fa6efb10c0815d39c692922e8b0421d3; *clck=1mr2pfh|1|ftw|0; xid=dac261de760022f125b820a3532dd7e8; slave*sid=bUdyR0VlenBWcFNaeGt6T25uWEhYUXd1VTBheWtUVWxFdWZIVHhWSE1rTnRtaEtBUGlQb0hDMmV1NzRoS29qOXVjREJoZlBfckdtNGpNTk4xS1YxeEF3WTdrZGpKU01HelFNZm94VTFBeVFYSXhPWVN1MUJPNGdwWTJPVXR1SkFwcnJGR3RqR3JFTE1UVkgz; slave_user=gh_b89c7dbe2d0d; rand_info=CAESIIrl/lpNzhAVVw0EkwiG8FU/r1+wtjeHfL3PXReBWbqM; slave_bizuin=3918520287; bizuin=3918520287; _clsk=1332kwo|1740969186856|5|1|mp.weixin.qq.com/weheat-agent/payload/record"
+    
     headers = {
         "Cookie": cookie,
-        "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Mobile Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Referer": "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit_v2&action=edit&isNew=1&type=10&lang=zh_CN&token=232435096",
     }
+    
+    # 参考原始参数，但可能需要更新token
     data = {
-        "token": "232435096",
+        "token": "232435096", # 这个token可能需要更新
         "lang": "zh_CN",
         "f": "json",
         "ajax": "1",
         "action": "list_ex",
         "begin": "0",
-        "count": "5",  # Only get the latest 5 articles
+        "count": "5",  # 获取最新5篇文章
         "query": "",
         "fakeid": fakeid,
         "type": "9",
@@ -114,17 +120,46 @@ def get_weixin_articles(fakeid, account_name):
     results_list = []
     
     try:
-        content_json = requests.get(url, headers=headers, params=data).json()
+        # 记录请求信息便于调试
+        st.write(f"正在请求微信公众号文章，fakeid: {fakeid}")
         
+        # 发送请求获取数据
+        response = requests.get(url, headers=headers, params=data)
+        
+        # 检查HTTP响应状态
+        if response.status_code != 200:
+            return f"Error: HTTP status {response.status_code} for {account_name}. 请求失败。"
+        
+        # 尝试解析JSON
+        try:
+            content_json = response.json()
+        except Exception as json_error:
+            return f"Error: JSON解析失败: {str(json_error)}. 响应内容: {response.text[:200]}..."
+        
+        # 显示完整的响应内容供调试
+        st.write("API响应内容(前200字符):", response.text[:200])
+        
+        # 检查API返回的错误码
+        if content_json.get("base_resp", {}).get("ret") != 0:
+            error_msg = content_json.get("base_resp", {}).get("err_msg", "未知错误")
+            return f"Error: API错误 {account_name}. 错误代码: {content_json.get('base_resp', {}).get('ret')}, 错误信息: {error_msg}"
+        
+        # 检查是否有文章列表
         if "app_msg_list" not in content_json:
-            return f"Error: Unable to fetch articles for {account_name}. Check the fakeid and cookie."
+            # 输出完整的JSON以便调试
+            st.write("完整响应(用于调试):", content_json)
+            return f"Error: 无法获取 {account_name} 的文章列表。app_msg_list 字段缺失。"
         
         content_list = content_json["app_msg_list"]
         
-        # Get current time for comparison (3 days ago)
+        # 检查文章列表是否为空
+        if not content_list:
+            return f"提示: {account_name} 的文章列表为空，没有可获取的文章。"
+        
+        # 计算3天前的时间戳
         three_days_ago = time.time() - (3 * 24 * 60 * 60)
         
-        # Filter for articles within the last 3 days
+        # 过滤最近3天的文章
         recent_articles = []
         for item in content_list:
             if item.get("create_time", 0) >= three_days_ago:
@@ -132,12 +167,18 @@ def get_weixin_articles(fakeid, account_name):
         
         st.write(f"找到 {len(recent_articles)} 篇过去3天内的文章")
         
+        # 如果没有最近3天的文章，返回最新的一篇作为样例
+        if not recent_articles and content_list:
+            st.write("注意: 没有找到3天内的文章，将展示最新的一篇文章作为示例")
+            recent_articles = [content_list[0]]
+        
+        # 处理每篇文章
         for item in recent_articles:
             title = item["title"]
             link = item["link"]
             create_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(item["create_time"]))
             
-            # Get raw HTML using the full URL
+            # 获取文章HTML
             with st.spinner(f"获取文章内容: {title}"):
                 html_content = get_raw_html_for_weixin(link)
             
@@ -148,12 +189,16 @@ def get_weixin_articles(fakeid, account_name):
                 "html_content": html_content
             })
             
-            # Add a delay between requests
+            # 添加随机延迟，避免请求过于频繁
             time.sleep(random.randint(1, 2))
         
         return results_list
     
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        st.error(f"获取微信文章时出错: {str(e)}")
+        st.code(error_traceback)
         return f"Error fetching WeChat articles: {str(e)}"
 
 # Function to analyze WeChat articles using Qwen
@@ -307,6 +352,77 @@ with tabs[0]:
         st.subheader("微信公众号监控")
         st.write("监控选定的微信公众号的最新文章 (仅获取过去3天的内容)")
         
+        # 添加调试和帮助信息
+        with st.expander("常见问题与故障排除", expanded=False):
+            st.markdown("""
+            ### 常见问题与故障排除
+            
+            1. **无法获取文章**
+               - WeChat cookies可能已过期：这些通常在1-2周后过期
+               - Token可能需要更新：公众号平台更新后token会变化
+               - 请求频率过高：添加延迟或减少批量请求数量
+            
+            2. **API错误代码**
+               - 错误码-3: 通常表示cookie或token无效
+               - 错误码200013: 可能是请求频率受限
+               - 错误码200003: 可能是无权限访问
+               
+            3. **调试建议**
+               - 使用最新的cookie和token
+               - 确保使用正确的fakeid
+               - 检查网络连接状态
+            """)
+            
+            # 添加手动测试表单
+            st.subheader("手动测试接口")
+            with st.form("test_api_form"):
+                test_account = st.selectbox("选择账号测试", options=list(weixin_accounts.keys()))
+                update_cookie = st.text_area("更新Cookie (可选):", height=100)
+                update_token = st.text_input("更新Token (可选):", value="232435096")
+                submitted = st.form_submit_button("测试接口")
+                
+                if submitted:
+                    fakeid = weixin_accounts[test_account]
+                    st.write(f"测试账号: {test_account}")
+                    st.write(f"Fakeid: {fakeid}")
+                    
+                    # 构建测试请求
+                    url = "https://mp.weixin.qq.com/cgi-bin/appmsg"
+                    
+                    headers = {
+                        "Cookie": update_cookie if update_cookie else "appmsglist_action_3918520287=card; rewardsn=; wxtokenkey=777; pac_uid=0_WFRCchx025Cww; *qimei*uuid42=191090f32121004a40ded1e5e650d9677d9210f8fb; *qimei*h38=e963446740ded1e5e650d96703000003119109; *qimei*q36=; ua_id=fIxXt1qo3N1AkUI9AAAAAE7bKLDM8dls2W8RivxiLs4=; wxuin=36409384414630; suid=user_0_WFRCchx025Cww; mm_lang=zh_CN; sig=h016ff31a4a1ff5262376ab723fd8d807ea82f9552e933b7d087ca0bd6cd2ce703cdaaf9f90ae8c1544",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+                    }
+                    
+                    data = {
+                        "token": update_token,
+                        "lang": "zh_CN",
+                        "f": "json",
+                        "ajax": "1",
+                        "action": "list_ex",
+                        "begin": "0",
+                        "count": "5",
+                        "query": "",
+                        "fakeid": fakeid,
+                        "type": "9",
+                    }
+                    
+                    try:
+                        response = requests.get(url, headers=headers, params=data)
+                        st.write(f"HTTP状态码: {response.status_code}")
+                        
+                        try:
+                            json_response = response.json()
+                            st.json(json_response)
+                        except:
+                            st.write("无法解析JSON响应")
+                            st.write(response.text)
+                    except Exception as e:
+                        st.error(f"测试请求失败: {str(e)}")
+        
+        # 提示用户当前接口状态
+        st.info("注意：在微信公众平台的API更新后，当前的cookie和token可能需要更新。如果遇到问题，请使用上方的调试工具测试并更新接口参数。")
+        
         # Multi-select for WeChat accounts
         selected_accounts = st.multiselect(
             "选择要监控的微信公众号",
@@ -314,36 +430,77 @@ with tabs[0]:
             default=["量子位", "机器之心"]
         )
         
+        # 添加每次只监控一个账号的选项
+        monitor_mode = st.radio(
+            "监控模式",
+            ["批量监控所有选中账号", "单独监控每个账号(推荐)"]
+        )
+        
         if st.button("开始微信监控"):
             if not selected_accounts:
                 st.warning("请至少选择一个微信公众号进行监控。")
             else:
-                for account_name in selected_accounts:
-                    fakeid = weixin_accounts[account_name]
-                    st.write(f"### 正在拉取 {account_name} 的最新文章...")
+                if monitor_mode == "单独监控每个账号(推荐)":
+                    # 创建账号选择器
+                    account_to_monitor = st.selectbox(
+                        "选择要监控的账号",
+                        options=selected_accounts
+                    )
                     
-                    # Get WeChat articles
-                    articles = get_weixin_articles(fakeid, account_name)
-                    
-                    if isinstance(articles, str):  # Error occurred
-                        st.error(articles)
-                    else:
-                        # Create an expander for each account
-                        with st.expander(f"{account_name} - {len(articles)} 篇文章", expanded=True):
-                            for idx, article in enumerate(articles):
-                                # Display article info
-                                st.write(f"**{idx+1}. {article['title']}**")
-                                st.write(f"发布时间: {article['create_time']}")
-                                st.write(f"链接: {article['link']}")
-                                
-                                # Analyze article content
-                                with st.spinner(f"正在分析文章 {idx+1}..."):
-                                    analysis = analyze_weixin_article(article)
-                                    st.text_area(f"文章分析", analysis, height=200)
-                                
-                                st.markdown("---")
-                    
-                    st.markdown("---")
+                    if st.button(f"监控 {account_to_monitor}"):
+                        fakeid = weixin_accounts[account_to_monitor]
+                        st.write(f"### 正在拉取 {account_to_monitor} 的最新文章...")
+                        
+                        # 获取文章
+                        articles = get_weixin_articles(fakeid, account_to_monitor)
+                        
+                        if isinstance(articles, str):  # 出错
+                            st.error(articles)
+                        else:
+                            # 为每个账号创建一个可展开部分
+                            with st.expander(f"{account_to_monitor} - {len(articles)} 篇文章", expanded=True):
+                                for idx, article in enumerate(articles):
+                                    # 显示文章信息
+                                    st.write(f"**{idx+1}. {article['title']}**")
+                                    st.write(f"发布时间: {article['create_time']}")
+                                    st.write(f"链接: {article['link']}")
+                                    
+                                    # 分析文章内容
+                                    with st.spinner(f"正在分析文章 {idx+1}..."):
+                                        analysis = analyze_weixin_article(article)
+                                        st.text_area(f"文章分析", analysis, height=200)
+                                    
+                                    st.markdown("---")
+                else:
+                    # 批量监控所有选中账号
+                    for account_name in selected_accounts:
+                        fakeid = weixin_accounts[account_name]
+                        st.write(f"### 正在拉取 {account_name} 的最新文章...")
+                        
+                        # 获取微信文章
+                        articles = get_weixin_articles(fakeid, account_name)
+                        
+                        if isinstance(articles, str):  # 出错
+                            st.error(articles)
+                        else:
+                            # 为每个账号创建一个可展开部分
+                            with st.expander(f"{account_name} - {len(articles)} 篇文章", expanded=True):
+                                for idx, article in enumerate(articles):
+                                    # 显示文章信息
+                                    st.write(f"**{idx+1}. {article['title']}**")
+                                    st.write(f"发布时间: {article['create_time']}")
+                                    st.write(f"链接: {article['link']}")
+                                    
+                                    # 分析文章内容
+                                    with st.spinner(f"正在分析文章 {idx+1}..."):
+                                        analysis = analyze_weixin_article(article)
+                                        st.text_area(f"文章分析", analysis, height=200)
+                                    
+                                    st.markdown("---")
+                        
+                        # 添加延迟，避免批量请求被封
+                        time.sleep(5)
+                        st.markdown("---")
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
