@@ -140,108 +140,7 @@ def scrape_ai_influencer_tweets():
         "AndrewYNg",          # Andrew Ng
         "fchollet",           # François Chollet
         "_KarenHao",          # Karen Hao
-        "karpathy",           # Andrej Karpathy
-        "SchmidhuberAI",      # Jürgen Schmidhuber
-        "sarahookr",          # Sara Hooker
-        "demishassabis",      # Demis Hassabis
-        "saranormous",        # Sarah Guo
-        "hardmaru",           # David Hardmaru
-        "lilianweng",         # Lilian Weng
-        "OriolVinyalsML",     # Oriol Vinyals
-        "Michael_J_Black",    # Michael Black
-        "JeffDean",           # Jeff Dean
-        "goodfellow_ian",     # Ian Goodfellow
-        "achowdhery",         # Aakanksha Chowdhery
-        "PeterDiamandis",     # Peter H. Diamandis
-        "GaryMarcus",         # Gary Marcus
-        "giffmana",           # Lucas Beyer
-        "rasbt",              # Sebastian Raschka
-        "quaesita",           # Cassie Kozyrkov
-        "KateKayeReports",    # Kate Kaye
-        "EMostaque",          # Emad
-        "drfeifei",           # Fei-Fei Li
-        "DrJimFan",           # Jim Fan
-        "omarsar0",           # Elvis Saravia
-        "conniechan",         # Connie Chan
-        "hugo_larochelle",    # Hugo Larochelle
-        "benjedwards",        # Benj Edwards
-        "rebecca_szkutak",    # Becca Szkutak
-        "svlevine",           # Sergey Levine
-        "ericschmidt",        # Eric Schmidt
-        "ilyasut",            # Ilya Sutskever
-        "patrickmineault",    # Patrick Mineault
-        "natashajaques",      # Natasha Jaques
-        "pabbeel",            # Pieter Abbeel
-        "ESYudkowsky",        # Eliezer Yudkowsky
-        "geoffreyhinton",     # Geoffrey Hinton
-        "wintonARK",          # Brett Winton
-        "jeffclune",          # Jeff Clune
-        "RamaswmySridhar",    # Sridhar Ramaswamy
-        "bentossell",         # Ben Tossell
-        "johnschulman2",      # John Schulman
-        "_akhaliq",           # Ahsen Khaliq
-        "quocleix",           # Quoc Le
-        "jackclarkSF",        # Jack Clark
-        "mervenoyann",        # merve
-        "DavidSHolz",         # David
-        "natolambert",        # Nathan Lambert
-        "RichardSocher",      # Richard Socher
-        "mustafasuleymn",     # Mustafa Suleyman
-        "ZoubinGhahrama1",    # Zoubin Ghahramani
-        "nathanbenaich",      # Nathan Benaich
-        "johnvmcdonnell",     # John McDonnell
-        "tunguz",             # Bojan Tunguz
-        "bengoertzel",        # Ben Goertzel
-        "ch402",              # Chris Olah
-        "Kseniase_",          # Ksenia Se
-        "paulg",              # Paul Graham
-        "rsalakhu",           # Russ Salakhutdinov
-        "gdb",                # Greg Brockman
-        "vivnat",             # Vivek Natarajan
-        "bxchen",             # Brian X. Chen
-        "AnimaAnandkumar",    # Anima Anandkumar
-        "JeffreyTowson",      # Jeffrey Towson
-        "Thom_Wolf",          # Thomas Wolf
-        "johnplattml",        # John Platt
-        "SamanyouGarg",       # Samanyou Garg
-        "KirkDBorne",         # Kirk Bourne
-        "Alber_RomGar",       # Alberto Romero
-        "SilverJacket",       # Matthew Hutson
-        "ecsquendor",         # Tim Scarfe
-        "jordnb",             # Jordan Burgess
-        "jluan",              # David Luan
-        "NPCollapse",         # Connor Leahy
-        "NaveenGRao",         # Naveen Rao
-        "azeem",              # Azeem Azhar
-        "Suhail",             # Suhail Doshi
-        "maxjaderberg",       # Max Jaderberg
-        "Kyle_L_Wiggers",     # Kyle Wiggers
-        "cocoweixu",          # Wei Xu
-        "aidangomezzz",       # Aidan Gomez
-        "alexandr_wang",      # Alexandr Wang
-        "CaimingXiong",       # Caiming Xiong
-        "YiMaTweets",         # Yi Ma
-        "notmisha",           # Misha Denil
-        "peteratmsr",         # Peter Lee
-        "shivon",             # Shivon Zilis
-        "jackyliang42",       # Jacky Liang
-        "v_vashishta",        # Vin Vashishta
-        "xdh",                # Xuedong Huang
-        "FryRsquared",        # Hannah Fry
-        "ravi_lsvp",          # Ravi Mhatre
-        "ClementDelangue",    # clem
-        "oh_that_hat",        # Hattie Zhou
-        "sapna",              # Sapna Maheshwari
-        "VRLalchand",         # Vidhi Lalchand
-        "svpino",             # Santiago L Valdarrama
-        "ceobillionaire",     # Vincent Boucher
-        "ykilcher",           # Yannic Kilcher
-        "BornsteinMatt",      # Matt Bornstein
-        "lachygroom",         # Lachy Groom
-        "goodside",           # Riley Goodside
-        "amasad",             # Amjad Masad
-        "polynoamial",        # Noam Brown
-        "sytelus",            # Shital Shah
+        "karpathy"
     ]
     
     # Calculate date range for the last 2 days
@@ -756,7 +655,7 @@ with tabs[1]:
     st.header("定时汇报")
     st.write("定时整合汇报各大信息网站的重要内容")
     st.info("开发中")
-    scheduled_time = st.time_input("选择汇报时间（例如每日定时）", datetime.time(hour=12, minute=0))
+    scheduled_time = st.time_input("选择汇报时间（例如每日定时）", dt.time(hour=12, minute=0))
     st.write(f"当前设置的汇报时间为：{scheduled_time}")
 # ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[2]:
