@@ -25,12 +25,30 @@
 1. 公司内部ERP整合（飞书，Notion等）作为企业级资源管理与规划平台
 2. 公司Workflow整合（项目全生命周期）
 
+1.
+https://www.jasonwei.net/blog
+
+https://muennighoff.github.io/
+https://thomwolf.io/
+https://dennyzhou.github.io/
+
+Muennighoff
+Thom_Wolf
+_jasonwei
+denny_zhou
 
 
+半天的热点
 ### Follow articles written by
 ### [Jason Wei](https://scholar.google.com/citations?hl=en&user=wA5TK_0AAAAJ)
 
 OpenAI
+
+
+http://jasonwei.net/
+
+
+
 ### [Niklas Muennighoff](https://scholar.google.com/citations?hl=en&user=Me0IoRMAAAAJ)
 
 Stanford University

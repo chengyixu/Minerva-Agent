@@ -21,8 +21,6 @@ if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
 if "twitter_results" not in st.session_state:  # New state for Twitter results
     st.session_state["twitter_results"] = []
-if "ai_insights" not in st.session_state:  # New state for AI insights
-    st.session_state["ai_insights"] = None
 
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
@@ -272,11 +270,8 @@ def scrape_ai_influencer_tweets():
                         
                         # Analyze tweets with Qwen
                         analysis = analyze_tweets_with_qwen(handle, author_tweets)
-                        # Get the author's full name from the first tweet or use handle as fallback
-                        author_full_name = author_tweets[0]["author"] if author_tweets else handle
                         all_analyses.append({
                             "handle": handle,
-                            "author_name": author_full_name,
                             "analysis": analysis
                         })
                     
@@ -295,11 +290,6 @@ def scrape_ai_influencer_tweets():
             # Add a delay between authors to respect rate limits
             if i < len(twitter_handles) - 1:  # Don't delay after the last author
                 time.sleep(3)
-    
-    # After collecting all tweets, analyze them collectively for AI insights
-    if all_tweets:
-        ai_insights = extract_ai_insights_with_qwen(all_tweets)
-        st.session_state["ai_insights"] = ai_insights
     
     # Final summary
     progress.empty()
@@ -327,55 +317,6 @@ def analyze_tweets_with_qwen(handle, tweets_data):
         
         Tweets:
         {tweet_content}
-        '''}
-    ]
-    
-    response = dashscope.Generation.call(
-        api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
-        model="qwen-turbo",
-        messages=messages,
-        enable_search=True,
-        result_format='message'
-    )
-    
-    return response['output']['choices'][0]['message']['content']
-
-# New function to extract AI insights from collected tweets using Qwen
-def extract_ai_insights_with_qwen(tweets_data):
-    # Organize tweets by their importance (using likes, retweets as indicators)
-    sorted_tweets = sorted(
-        tweets_data, 
-        key=lambda x: (x.get('likes', 0) + x.get('retweets', 0)), 
-        reverse=True
-    )
-    
-    # Take top 100 tweets or all if less than 100
-    top_tweets = sorted_tweets[:min(100, len(sorted_tweets))]
-    
-    # Prepare tweet content for analysis
-    tweet_content = ""
-    for tweet in top_tweets:
-        tweet_content += f"Author: @{tweet['handle']} ({tweet['author']})\nTweet: {tweet['text']}\nLikes: {tweet['likes']}, Retweets: {tweet['retweets']}\nDate: {tweet['date']}\n\n"
-    
-    messages = [
-        {'role': 'system', 'content': 'You are an expert AI researcher and analyst. Your task is to identify emerging trends, groundbreaking research, and industry shifts in artificial intelligence by analyzing tweets from leading AI professionals.'},
-        {'role': 'user', 'content': f'''
-        Analyze the following collection of tweets from leading AI professionals and provide a comprehensive analysis of his/her AI insights:
-
-        1. 最新AI技术趋势 (Latest AI Technology Trends): Identify emerging technologies or approaches that appear to be gaining momentum in the AI community.
-        
-        2. 研究方向前沿 (Research Frontiers): Extract research areas that seem to be at the cutting edge based on researcher discussions.
-        
-        3. 行业发展动态 (Industry Developments): Summarize key business or industry shifts that are evident from these tweets.
-                
-        4. 未来AI展望 (Future AI Outlook): Based on these experts' tweets, provide insights on where AI might be heading in the near future.
-        
-        Current date: {datetime.now().strftime('%Y-%m-%d')}.
-        
-        Tweets:
-        {tweet_content}
-        
-        Provide your analysis in Chinese, with clear section headers and bullet points where appropriate.
         '''}
     ]
     
@@ -482,20 +423,20 @@ with tabs[0]:
     
     # X/Twitter monitoring tab (NEW)
     with monitoring_tabs[1]:
-        st.write("监控AI领域专家X动态")
+        st.write("监控AI领域专家Twitter动态")
         
         # Display information about the scraper
-        st.info("这个功能会抓取AI领域专家的X动态，并用Qwen进行分析，提取insights。")
+        st.info("这个功能会抓取AI领域专家的Twitter动态，并通过同样的Qwen模型进行分析，提取关键见解。")
         
         # Options for scraping
         top_influencers = ["sama", "ylecun", "AndrewYNg", "fchollet", "karpathy", "demishassabis", "drfeifei", "geoffreyhinton", "goodside", "EMostaque"]
-        selected_handles = st.multiselect("选择要监控的X账号,正在开发无需设置的总结功能):", options=top_influencers, default=top_influencers[:200])
+        selected_handles = st.multiselect("选择要监控的Twitter账号,正在开发无需设置的总结功能):", options=top_influencers, default=top_influencers[:3])
         
         # Limit the number of selected handles
         max_handles = min(len(selected_handles) if selected_handles else 3, 10)
         
         # Scrape button
-        if st.button("开始抓取X数据"):
+        if st.button("开始抓取X/Twitter数据"):
             if selected_handles:
                 st.session_state["twitter_handles"] = selected_handles[:max_handles]
                 st.write(f"### 正在抓取 {len(st.session_state['twitter_handles'])} 个AI专家的Twitter数据...")
@@ -511,67 +452,51 @@ with tabs[0]:
                 
                 # Display analyses
                 if all_analyses:
-                    # First display the collective AI insights
-                    if st.session_state["ai_insights"]:
-                        st.subheader("🔍 AI行业综合洞察")
-                        st.text_area("AI行业洞察分析", st.session_state["ai_insights"], height=400)
-                    
-                    # Then display individual analyses
-                    st.subheader("🧠 个人推文分析")
                     for analysis_item in all_analyses:
                         handle = analysis_item["handle"]
-                        author_name = analysis_item.get("author_name", handle)
                         analysis = analysis_item["analysis"]
                         
-                        with st.expander(f"{author_name} 分析"):
-                            st.text_area(f"{handle} 推文分析", analysis, height=250)
-                            
-                            # Get tweets for this handle
-                            handle_tweets = [t for t in all_tweets if t["handle"] == handle]
-                            
-                            with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
-                                for tweet in handle_tweets:
-                                    st.markdown(f"""
-                                    **日期：** {tweet['date']}  
-                                    **内容：** {tweet['text']}  
-                                    **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                                    **链接：** [查看原文]({tweet['url']})
-                                    ---
-                                    """)
+                        st.subheader(f"@{handle} 分析")
+                        st.text_area(f"{handle} 推文分析", analysis, height=250)
+                        
+                        # Get tweets for this handle
+                        handle_tweets = [t for t in all_tweets if t["handle"] == handle]
+                        
+                        with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
+                            for tweet in handle_tweets:
+                                st.markdown(f"""
+                                **日期：** {tweet['date']}  
+                                **内容：** {tweet['text']}  
+                                **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                                **链接：** [查看原文]({tweet['url']})
+                                ---
+                                """)
             else:
-                st.warning("请选择至少一个X账号进行监控。")
+                st.warning("请选择至少一个Twitter账号进行监控。")
         
         # Display previously fetched results if available
         elif "twitter_results" in st.session_state and st.session_state["twitter_results"]:
             st.write("### 最近一次分析结果")
             
-            # Display the collective AI insights first if available
-            if "ai_insights" in st.session_state and st.session_state["ai_insights"]:
-                st.subheader("🔍 AI行业综合洞察")
-                st.text_area("AI行业洞察分析", st.session_state["ai_insights"], height=400)
-            
-            # Then display individual analyses
-            st.subheader("🧠 个人推文分析")
             for analysis_item in st.session_state["twitter_results"]["analyses"]:
                 handle = analysis_item["handle"]
-                author_name = analysis_item.get("author_name", handle)
                 analysis = analysis_item["analysis"]
                 
-                with st.expander(f"{author_name} 分析"):
-                    st.text_area(f"{handle} 推文分析", analysis, height=250)
-                    
-                    # Get tweets for this handle
-                    handle_tweets = [t for t in st.session_state["twitter_results"]["tweets"] if t["handle"] == handle]
-                    
-                    with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
-                        for tweet in handle_tweets:
-                            st.markdown(f"""
-                            **日期：** {tweet['date']}  
-                            **内容：** {tweet['text']}  
-                            **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                            **链接：** [查看原文]({tweet['url']})
-                            ---
-                            """)
+                st.subheader(f"@{handle} 分析")
+                st.text_area(f"{handle} 推文分析", analysis, height=250)
+                
+                # Get tweets for this handle
+                handle_tweets = [t for t in st.session_state["twitter_results"]["tweets"] if t["handle"] == handle]
+                
+                with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
+                    for tweet in handle_tweets:
+                        st.markdown(f"""
+                        **日期：** {tweet['date']}  
+                        **内容：** {tweet['text']}  
+                        **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                        **链接：** [查看原文]({tweet['url']})
+                        ---
+                        """)
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
