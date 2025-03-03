@@ -4,6 +4,5 @@ openai
 streamlit
 dashscope
 firecrawl
-snscrape
 random
 os
