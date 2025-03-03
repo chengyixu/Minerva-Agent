@@ -35,11 +35,9 @@ def analyze_with_qwen(domain, raw_html):
         {'role': 'system', 'content': 'You are a professional AI researcher. Analyze the raw HTML content and extract key topics in the following format: "1. Description | Website"'},
         {'role': 'user', 'content': f'''
         Analyze the raw HTML content from {domain} and provide the latest 10 topics with:
-        1. Article titles in English
-        2. Article titles in Chinese
-        3. One-line descriptions in English
-        4. One-line descriptions in Chinese
-        5. Website name
+        1. Article titles in Chinese
+        2. One-line descriptions in Chinese
+        3. Website name
         Use current date: {datetime.date.today()}.
         HTML Content: {raw_html}
         '''}
