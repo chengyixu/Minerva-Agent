@@ -1,12 +1,3 @@
-beautifulsoup4
-requests
-openai
-streamlit
-dashscope
-firecrawl
-snscrape
-random
-os
 gradio==4.32.0
 faiss-cpu==1.8.0.post1
 dashscope==1.20.4

@@ -1,3 +1,4 @@
+import requests
 import streamlit as st
 import datetime
 import dashscope
@@ -8,26 +9,27 @@ fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
 x_api = "68Ht8QWPM68NDGEVqKw4gozGK"
 x_api_secret = "UWkfgwI6tryTEtKcJwasYTeYLep5DW8MzVxDEFLQGyUhPJYuRe"
 app = FirecrawlApp(api_key=fire_api)
+jina_api = "jina_26a656e516224ce28e71cc3b28fa7b07zUchXe4_MJ_935m8SpS9-TNGL--w"
 
 # Function to get raw HTML content from the websites using Firecrawl
+
 def get_raw_html(domain):
     try:
-        # Use Firecrawl to crawl the website
-        crawl_status = app.crawl_url(
-            f'https://{domain}', 
-            params={'limit': 100, 'scrapeOptions': {'formats': ['markdown', 'links']}},
-            poll_interval=30
-        )
-        if crawl_status['success'] and crawl_status['status'] == 'completed':
-            # Firecrawl response contains markdown content, you can retrieve it
-            markdown_content = crawl_status['data'][0]['markdown']
-            return markdown_content
-        else:
-            return f"Failed to retrieve content from {domain}. Status: {crawl_status['status']}"
-    except Exception as e:
+        # Use Jina to get the raw HTML
+        url = f'https://r.jina.ai/https://{domain}'
+        headers = {
+            'Authorization': 'Bearer jina_26a656e516224ce28e71cc3b28fa7b07zUchXe4_MJ_935m8SpS9-TNGL--w'
+        }
+        response = requests.get(url, headers=headers)
+        
+        # Check if the request was successful
+        response.raise_for_status()  # Raises an exception for 4XX/5XX responses
+        
+        # Return the raw HTML content
+        return response.text
+    except requests.exceptions.RequestException as e:
         return f"Error while fetching content from {domain}: {str(e)}"
-
-# Function to prepare the message for Qwen LLM analysis
+        # Function to prepare the message for Qwen LLM analysis
 def analyze_with_qwen(domain, raw_html):
     messages = [
         {'role': 'system', 'content': 'You are a professional AI researcher. Analyze the raw HTML content and extract key topics in the following format: "1. Description | Website"'},
