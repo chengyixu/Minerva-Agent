@@ -1,0 +1,177 @@
+Title: DeepSeek一天能赚多少钱？官方突然揭秘V3/R1推理系统，成本全透明
+
+URL Source: http://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650957381&idx=1&sn=8355ed24987bba06693ecebdea0983c1&chksm=84e7a23bb3902b2d512f8cfcf3f6568b3462265b958763fa1a9d157ce25d17fc52b0137972c0
+
+Markdown Content:
+机器之心报道
+
+**机器之心编辑部**
+
+> DeepSeek 官方：如果所有 tokens 全部按照 DeepSeek R1 的定价计算，理论上一天的总收入为 $562,027，成本利润率 545%。但实际上没有这么多收入，因为 V3 的定价更低，同时收费服务只占了一部分，另外夜间还会有折扣。
+
+太突然了！原来 DeepSeek 也有 One More Thing。  
+
+就在所有人以为 DeepSeek 预告的 5 天开源告一段落时，今天中午 12 点 11 分，官方 𝕏 帐号再次更新，宣告「开源周」还在继续。不过这第六天 DeepSeek 并没有开源新的软件库，而是介绍了 DeepSeek-V3/R1 的推理系统。
+
+![Image 1: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7FicBZabBWv4kWWPWNjYnCscZNDUuPhDr1bTMtbSYZicOrG5RP4pg6Up0g/640?wx_fmt=png&from=appmsg)
+
+概述地址：https://github.com/deepseek-ai/open-infra-index/blob/main/202502OpenSourceWeek/day\_6\_one\_more\_thing\_deepseekV3R1\_inference\_system\_overview.md
+
+DeepSeek 的推文中写到，DeepSeek-V3/R1 的推理系统采用了跨节点 EP 驱动的批量扩展、计算 - 通信重叠、负载平衡来实现对吞吐量和延迟的优化。同时，DeepSeek 还给出了其在线服务的统计数据：
+
+*   每个 H800 节点实现了 **73.7k/14.8k** 个每秒输入 / 输出 token；
+    
+*   （理论）成本利润率高达 **545%**。
+    
+
+DeepSeek 还表示：「我们希望本周的洞见能够为社区带来价值，并为我们共同的 AGI 目标做出贡献。」
+
+一时之间，社区再次沸腾，不仅仅是因为明明说的 5 天开源却来到了第 6 天以及 73.7k、14.8k、545% 这三个惊人的数字，大家尤其期待明天 —— 开源周的最后一天，DeepSeek 将用什么来压轴。
+
+![Image 2: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7Fg5uBIy2Knx8PjVzzVjCmtpKJicdufMWESQibK6SbcPr2ZGdj3KmvW7NQ/640?wx_fmt=png&from=appmsg)
+
+![Image 3: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7FXxawgIdEbLw1IgNsPMTW1bXpyalCb3kqsIibjmtzjlCdW4C11jEZibsw/640?wx_fmt=png&from=appmsg)
+
+**系统设计原则**
+
+为了实现更高的吞吐量和更低的延迟，DeepSeek 采用了跨节点专家并行（EP，Expert Parallelism）策略。
+
+首先，EP 显著扩展了 batch 大小，提高了 GPU 矩阵计算效率并增加了吞吐量。
+
+其次，EP 将专家分布到各个 GPU 上，每个 GPU 只处理一小部分专家（减少内存访问需求），从而降低延迟。
+
+然而 EP 增加了系统的复杂性，主要表现在两个方面：
+
+*   EP 引入了跨节点通信。为了优化吞吐量，必须设计适当的计算工作流，shi 通信与计算重叠。
+    
+*   EP 涉及多个节点，因此本质上需要数据并行 (DP)，并且需要在不同的 DP 实例之间进行负载平衡。
+    
+
+为此，该项目重点介绍如何通过以下方式应对这些挑战：
+
+*   利用 EP 扩展 batch 大小；
+    
+*   隐藏计算背后的通信延迟；
+    
+*   执行负载平衡。
+    
+
+**大规模跨节点专家并行（EP）**
+
+由于 DeepSeek-V3/R1 中专家数量庞大 —— 每层 256 个专家中只有 8 个被激活 —— 模型的高度稀疏性导致需要极大的总 batch 大小。这样才能确保每个专家有足够的 batch 大小，从而实现更高的吞吐量和更低的延迟。大规模跨节点 EP（专家并行）是至关重要的。
+
+由于 DeepSeek 采用了预填充 - 解码分解架构，因此他们在预填充和解码阶段采用不同程度的并行性：
+
+*   预填充阶段 \[路由专家 EP32、MLA / 共享专家 DP32\]：每个部署单元跨越 4 个节点，拥有 32 个冗余路由专家，其中每个 GPU 处理 9 个路由专家和 1 个共享专家。
+    
+*   解码阶段 \[路由专家 EP144、MLA / 共享专家 DP144\]：每个部署单元跨越 18 个节点，拥有 32 个冗余路由专家，其中每个 GPU 管理 2 个路由专家和 1 个共享专家。
+    
+
+**计算 - 通信重叠**
+
+大规模跨节点 EP 会引入显著的通信开销。为了缓解这一问题，DeepSeek 采用了「dual-batch」重叠策略，通过将一个 batch 请求拆分为两个 microbatch 来隐藏通信成本并提高整体吞吐量。在预填充阶段，这两个 microbatch 交替执行，一个 microbatch 的通信成本被隐藏在另一个 microbatch 的计算过程中。
+
+![Image 4: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7FgRmao5ibnPmrGlxASjkmtWh4MglffapXm4eUpC87PPBPxDP1sdHQ4EA/640?wx_fmt=png&from=appmsg)
+
+_预填充阶段通信 - 计算重叠_
+
+在解码阶段，不同阶段的执行时间是不平衡的。因此，DeepSeek 将注意力层细分为两个 step，并使用一个 5 阶段的 pipeline 来实现无缝的通信 - 计算重叠。
+
+![Image 5: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7FMaCfh7vIO3vfv66sRSO7KJBjUdibic86YRyjPOicUjbZcKpLibLHfsFIpw/640?wx_fmt=png&from=appmsg)
+
+_解码阶段的通信 - 计算重叠_
+
+关于通信 - 计算重叠机制的更多细节可以参考：https://github.com/deepseek-ai/profile-data
+
+**实现最优负载平衡**
+
+大规模并行化（包括 DP 和 EP）存在一个关键难题：如果单台 GPU 的计算或通信负荷过重，它就会成为性能瓶颈，导致整个系统变慢，同时还让其他 GPU 处于闲置状态。为了最大限度地提高资源利用率，DeepSeek 努力实现了所有 GPU 上的计算和通信负载平衡。
+
+1\. 预填充负载平衡器
+
+关键问题：DP 实例之间的请求数量和序列长度不同，导致核心注意力（core-attention）计算和调度发送负载不平衡。
+
+优化目标：
+
+*   平衡 GPU 之间的核心注意力计算（核心注意力计算负载平衡）。
+    
+*   均衡每个 GPU 的输入 token 数量（调度发送负载平衡），防止特定 GPU 上的处理时间过长。
+    
+
+2\. 解码负载平衡器
+
+关键问题：DP 实例之间的请求数量和序列长度不均匀导致核心注意力计算（与 KV 缓存使用量相关）和调度发送负载不均。
+
+优化目标：
+
+*   平衡 GPU 之间的 KV 缓存使用率（核心注意力计算负载平衡）。
+    
+*   均衡每个 GPU 的请求数（调度发送负载平衡）。
+    
+
+3\. 专家并行负载平衡器
+
+关键问题：对于给定的 MoE 模型，存在固有的高负载专家，导致不同 GPU 之间的专家计算工作负载不平衡。
+
+优化目标：平衡每个 GPU 上的专家计算（即，最小化所有 GPU 上的最大调度接收负载）。
+
+**DeepSeek 在线推理系统示意图** 
+
+_![Image 6: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7FeEr5FJIxWVglEWVS5W4Ytoq405iaXYSh9ria5OHo0z1EYEZO8FagLibpg/640?wx_fmt=png&from=appmsg)_
+
+_DeepSeek 在线推理系统示意图_
+
+**DeepSeek 在线服务统计** 
+
+所有 DeepSeek-V3/R1 推理服务均在 H800 GPU 上运行，精度与训练一致。具体而言，矩阵乘法和分发传输采用与训练一致的 FP8 格式，而核心 MLA 计算和组合传输使用 BF16 格式，确保最佳服务性能。 
+
+此外，由于白天服务负载高而夜间负载低，DeepSeek 实施了一种机制，于白天高峰时段在所有节点上部署推理服务。在夜间低负载期间，他们减少推理节点并将资源分配给研究和训练。在过去 24 小时内（北京时间 2025 年 2 月 27 日中午 12:00 至 2025 年 2 月 28 日中午 12:00），V3 和 R1 推理业务的合并峰值节点占用达到 278，平均占用 226.75 个节点（每个节点包含 8 个 H800 GPU）。假设租赁一个 H800 GPU 的成本为每小时 2 美元，每日总成本为 87,072 美元（约合人民币 63.4 万）。 
+
+![Image 7: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7Ft4A0icycBGBZsN0ibiaw62dtbUAhBdTDHo1XcwZicT5bK2vP3QRF1ticic8A/640?wx_fmt=png&from=appmsg)
+
+_H800 推理服务节点数量。_
+
+在 24 小时统计期间（北京时间 2025 年 2 月 27 日中午 12:00 至 2025 年 2 月 28 日中午 12:00），V3 和 R1： 
+
+*   总输入 token：608B，其中 342B token（56.3%）命中磁盘 KV 缓存。
+    
+*   总输出 token：168B。平均输出速度为每秒 20-22 个 token，每个输出 token 的平均 kvcache 长度为 4,989 个 token。
+    
+*   每个 H800 节点在预填充期间平均吞吐量约为 73.7k tokens/s 输入（包括缓存命中）或在解码期间约为 14.8k tokens/s 输出。
+    
+
+**以上统计数据包括来自网页、APP 和 API 的所有用户请求。如果所有 token 都按照 DeepSeek-R1 的定价 (\*) 计费，每日总收入将为 562,027 美元，成本利润率为 545%。** 
+
+(\*) R1 定价：0.14 美元 / 百万输入 token（缓存命中），0.55 美元 / 百万输入 token（缓存未命中），2.19 美元 / 百万输出 token。 
+
+然而，DeepSeek 表示实际收入大幅低于此数字，原因如下：
+
+*   DeepSeek-V3 的定价显著低于 R1，
+    
+*   只有部分服务实现货币化（网页和 APP 访问仍然免费），
+    
+*   在非高峰时段自动应用夜间折扣。
+    
+
+![Image 8: image.png](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9hpDaVcRVCxicraWBrWSD7FjoUyq5nyAtCNddNCibEbQZ1M0mh1SUlRAZQxibO8GhkIz70bh7DRsfNg/640?wx_fmt=png&from=appmsg)
+
+明天是这周的最后一天，不知道 DeepSeek 还有没有新的惊喜。
+
+相关阅读：
+
+*   [《刚刚，DeepSeek 开源 FlashMLA，推理加速核心技术，Star 量飞涨中》](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650956260&idx=1&sn=c1bedb22cf93c90fc0c5c8ccd0091b5f&scene=21#wechat_redirect)
+    
+*   [《刚刚，DeepSeek 开源 MoE 训练、推理 EP 通信库 DeepEP，真太 Open 了！》](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650956631&idx=1&sn=035899749d934f427709c97be99b1ce8&scene=21#wechat_redirect)
+    
+*   [《DeepSeek 开源通用矩阵乘法库，300 行代码加速 V3、R1，R2 被曝五月前问世》](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650956888&idx=1&sn=1d463f7036b27ea6fa2900a9dc2e7486&scene=21#wechat_redirect)
+    
+*   [《DeepSeek 一口气开源 3 个项目，还有梁文锋亲自参与，昨晚 API 大降价》](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650957054&idx=1&sn=49662968a2fe92fbbba9d8dcba05dc1b&scene=21#wechat_redirect)
+    
+*    [《DeepSeek开源周最后一天：让数据处理「从自行车升级到高铁」》](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650957184&idx=1&sn=5a2b0577fdf3fcc6c2dc8e4eefbdedd2&scene=21#wechat_redirect)
+    
+
+© THE END 
+
+转载请联系本公众号获得授权
+
+投稿或寻求报道：liyazhou@jiqizhixin.com

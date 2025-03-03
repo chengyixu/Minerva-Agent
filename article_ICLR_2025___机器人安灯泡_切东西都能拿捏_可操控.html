@@ -1,0 +1,101 @@
+Title: ICLR 2025 | 机器人安灯泡、切东西都能拿捏，可操控轨迹跟踪的DexTrack来了
+
+URL Source: http://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650957407&idx=3&sn=96c0037dc3c4131987e09de72eb0aa1d&chksm=84e7a221b3902b378a558271e275205dccff24f49f7d6da0b2cfcde39c6c4141f2ca3e72b94e
+
+Markdown Content:
+![Image 1: 图片](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9OnnzCX2HjxlUqj24Vnns9NNNzu0PPwaOst5iciaSdlMlBvia0nHGUtk9XQhXRqPP6P8KXz8wUyXicmg/640?wx_fmt=other&from=appmsg&wxfrom=5&wx_lazy=1&wx_co=1&tp=webp)
+
+> AIxiv专栏是机器之心发布学术、技术内容的栏目。过去数年，机器之心AIxiv专栏接收报道了2000多篇内容，覆盖全球各大高校与企业的顶级实验室，有效促进了学术交流与传播。如果您有优秀的工作想要分享，欢迎投稿或者联系报道。投稿邮箱：liyazhou@jiqizhixin.com；zhaoyunfeng@jiqizhixin.com
+
+现实世界的机器人距离科幻小说里的机器人世界还有多远？通用灵巧操控何时才能实现？朝着这一伟大的目标，研究通用灵巧操控轨迹跟踪的 DexTrack 便应用而生。
+
+*   论文地址：https://arxiv.org/abs/2502.09614
+    
+*   代码地址：https://github.com/Meowuu7/DexTrack
+    
+*   项目网站：https://meowuu7.github.io/DexTrack/
+    
+*   YouTube 视频：https://youtu.be/zru1Z-DaiWE
+    
+
+**1\. 动机**
+
+赋予机器人像人一样的灵巧操控技能是通往未来终极具身智能的重要一步。如何让一个具身智能体获得广泛的灵巧操控技能一直是具身智能领域的一个重要问题。灵巧操控任务复杂且多样，之前很多工作大多专注在特定技能的获取（如抓取或者在手里转动）。他们大多需要对单独的任务进行针对性的设计，例如专门对某一种特定的任务设计对应的奖励函数，之后根据这样的奖励函数训练策略网络来解决对应的问题。这些难以迁移到不一样的任务上的 reward 设计是通往通用操控技能的一个阻力。
+
+所以为了实现通用的灵巧操控技能，我们首先需要任务表示层面的统一。此外，灵巧操控技能涉及到复杂的和随时间变化的手 - 物接触，复杂的物体运动轨迹。再考虑到对使用一个操控策略解决不同类型的操控任务的需求，得到一个通用的灵巧操控智能体对算法本身的设计也提出了很大的挑战。
+
+为了实现这一目标，我们将运动规划以及控制的问题拆解开来，将不同种的灵巧操控技能重新统一到一个轨迹跟踪控制的框架下，进一步借助于大量的人类操控物体的数据作为跟踪的目标，通过学习一个通用的轨迹跟踪控制器，来一定程度上解决这个问题（图 1）。
+
+![Image 2](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9gpYDCOGO1bFGic4M8mMibkl0LNvPbo9oo5DjjsxlEMCdibSTic1Jm3zzQzkMFqSvicO8M1KAUgoFVQRg/640?wx_fmt=png&from=appmsg)
+
+_图 1：问题的拆解和对通用轨迹跟踪器的期待_
+
+**2\. DexTrack：通用轨迹跟踪器的学习**
+
+**2.1 统一的轨迹跟踪任务表示**
+
+我们将不同类型的操控任务统一到一个轨迹跟踪任务来完成任务表示层面的统一。在每个时刻，给定机器手和物体当前的状态，以及下一步想要达到的状态，轨迹跟踪控制器的任务是给出机器手当前应该执行的动作，从而通过执行该动作，机器手可以运动且和物体进行交互，使得机器手以及物体实际达到的状态与下一步想要达到的状态相吻合。这样的表示方式对不同的操控任务是比较适配的。对一个任务，比如将物体转动一个角度，我们可以先规划出来物体的运动轨迹，之后将这个任务转化为跟踪物体运动轨迹的轨迹跟踪任务。
+
+![Image 3](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9gpYDCOGO1bFGic4M8mMibklzZfB0Fm0qQKqOX7rqdITibmDcKJ7ibW6gic0F8iasej3pSicLyFR2QsiasMg/640?wx_fmt=png&from=appmsg)
+
+_图 2：轨迹跟踪器的输入和输出_
+
+**2.2 通用轨迹跟踪器的学习方法**
+
+一个通用的轨迹跟踪需要可以响应各种各样的轨迹跟踪命令。这一多样的轨迹空间对该轨迹跟踪器的学习提出了更高的挑战。我们提出了一个将 RL 和 IL 结合起来的方法，在 RL 训练的同时引入监督信号来降低 policy 学习的难度。通过交替地使用高质量的轨迹跟踪数据辅助通用轨迹跟踪控制器的学习，以及借助通用轨迹跟踪器来提高单一轨迹跟踪演示的质量，我们可以逐渐得到一个强大的可以跟踪各种各样轨迹的控制器（图 3）。
+
+![Image 4](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9gpYDCOGO1bFGic4M8mMibklvQ6uzoN9zVhpl0kAq98dNjQxVIP0wxRfFgicphH3ws7Cv3toqGTSbGg/640?wx_fmt=png&from=appmsg)
+
+_图 3：通用轨迹跟踪器的训练方法_
+
+2.2.1 轨迹跟踪任务奖励函数
+
+奖励函数主要由三部分组成：1）物体轨迹跟踪奖励，2）手部轨迹跟踪奖励，3）手和物体的亲密度奖励。
+
+2.2.2 通过 RL 和高质量跟踪演示数据来训练通用轨迹跟踪器
+
+通过在 policy 的训练过程中引入额外的监督信息来降低这一通用轨迹跟踪器学习的难度。
+
+2.2.3 借助通用轨迹跟踪器来提高单一轨迹跟踪演示的质量
+
+我们设计了两个策略来提高单一轨迹跟踪演示的质量，1）借助通用轨迹跟踪器来初始化单一轨迹跟踪策略的学习，2） 借助 homotopy optimization 的方式，通过解决一系列的优化任务来降低特定轨迹跟踪任务优化的难度（图 4）。
+
+![Image 5](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9gpYDCOGO1bFGic4M8mMibklJEWqJc3FM0dSzulNhJxRVnWNsA0UcEKkXZP5iaEsV6KIrkHDHfwb3vA/640?wx_fmt=png&from=appmsg)
+
+_图 4：Homotopy Optimization_
+
+**3\. 结果**
+
+我们的方法在极具挑战性的任务上达到了令人瞩目的效果。同时我们也进行了大量的真机实验来验证它在真实世界中的可行性。我们的机器手可以转动并尝试 “安装” 一个灯泡。在 functional tool using 方面，我们也可以在手中调整一个刀使得刀可以刀刃向下来切东西，可以在手中转动一个锤子，并使用正确的朝向来锤东西。因为获得这些动作的人手轨迹比较困难，我们通过只跟踪物体轨迹来实现这些效果。这也证明了我们的方法可以拓展到稀疏物体轨迹跟踪的应用上。
+
+_图 5：Real World 结果展示（Part 1）_
+
+以下是更多的真机实验展示。
+
+_图 6：Real World 结果展示（Part 2）_
+
+在 simulator 中，我们对这些包含复杂的物体的运动轨迹，精巧的微转，以及非常细的难以抓起来的物体仍然是有效的。
+
+_图 7：Isaac Gym 中的不同方法的比较_
+
+此外，homotopy optimization 可以有效地提高轨迹跟踪的效果。
+
+_图 8：Homotopy Optimization 的有效性_
+
+我们的研究对运动轨迹中的噪声比较鲁棒，也可以泛化到从来没有见过的物体的种类以及运动的类别上。
+
+_图 9：Robustness_
+
+更多的结果：
+
+_图 10：更多的结果_
+
+开源代码：https://github.com/Meowuu7/DexTrack
+
+更多的动画演示和相关信息可见项目网站：https://meowuu7.github.io/DexTrack/
+
+© THE END 
+
+转载请联系本公众号获得授权
+
+投稿或寻求报道：liyazhou@jiqizhixin.com
