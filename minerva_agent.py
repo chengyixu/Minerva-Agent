@@ -5,13 +5,10 @@ import dashscope
 from firecrawl import FirecrawlApp
 import os
 from openai import OpenAI 
-import time
-import random
+from apify_client import ApifyClient  # Added for X/Twitter scraping
 import json
-import pandas as pd
-import re
-from urllib.parse import urlparse
-from tqdm import tqdm
+import time
+from datetime import datetime, timedelta
 
 # Initialize session state variables
 if "local_facts" not in st.session_state:
@@ -20,58 +17,13 @@ if "local_files" not in st.session_state:
     st.session_state["local_files"] = []
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
+if "twitter_results" not in st.session_state:  # New state for Twitter results
+    st.session_state["twitter_results"] = []
 
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
 app = FirecrawlApp(api_key=fire_api)
 jina_api = "jina_26a656e516224ce28e71cc3b28fa7b07zUchXe4_MJ_935m8SpS9-TNGL--w"
-
-# WeChat scraping setup
-weixin_url = "https://mp.weixin.qq.com/cgi-bin/appmsg"
-weixin_cookie = "appmsglist_action_3918520287=card; rewardsn=; wxtokenkey=777; pac_uid=0_WFRCchx025Cww; qimeiuuid42=191090f32121004a40ded1e5e650d9677d9210f8fb; qimeih38=e963446740ded1e5e650d96703000003119109; qimeiq36=; ua_id=fIxXt1qo3N1AkUI9AAAAAE7bKLDM8dls2W8RivxiLs4=; wxuin=36409384414630; suid=user_0_WFRCchx025Cww; mm_lang=zh_CN; sig=h016ff31a4a1ff5262376ab723fd8d807ea82f9552e933b7d087ca0bd6cd2ce703cdaaf9f90ae8c1544; ab.storage.deviceId.f9c2b69f-2136-44e0-a55a-dff72d99aa19=g%3AYoJZqng6gcdvly5aBDxZqgiJ1GZ2%7Ce%3Aundefined%7Cc%3A1739462526631%7Cl%3A1739462526631; ab.storage.sessionId.f9c2b69f-2136-44e0-a55a-dff72d99aa19=g%3A7bafc696-6715-6e6b-565d-5695541d32ca%7Ce%3A1739464326655%7Cc%3A1739462526656%7Cl%3A1739462526656; qimeifingerprint=d91ba6f60a0e30a68c3644052fa00145; uuid=fa6efb10c0815d39c692922e8b0421d3; clck=1mr2pfh|1|ftw|0; xid=dac261de760022f125b820a3532dd7e8; slavesid=bUdyR0VlenBWcFNaeGt6T25uWEhYUXd1VTBheWtUVWxFdWZIVHhWSE1rTnRtaEtBUGlQb0hDMmV1NzRoS29qOXVjREJoZlBfckdtNGpNTk4xS1YxeEF3WTdrZGpKU01HelFNZm94VTFBeVFYSXhPWVN1MUJPNGdwWTJPVXR1SkFwcnJGR3RqR3JFTE1UVkgz; slave_user=gh_b89c7dbe2d0d; rand_info=CAESIIrl/lpNzhAVVw0EkwiG8FU/r1+wtjeHfL3PXReBWbqM; slave_bizuin=3918520287; bizuin=3918520287; _clsk=1332kwo|1740969186856|5|1|mp.weixin.qq.com/weheat-agent/payload/record"
-weixin_headers = {
-    "Cookie": weixin_cookie,
-    "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Mobile Safari/537.36",
-}
-weixin_data = {
-    "token": "232435096",
-    "lang": "zh_CN",
-    "f": "json",
-    "ajax": "1",
-    "action": "list_ex",
-    "begin": "0",
-    "count": "5",
-    "query": "",
-    "fakeid": "",  # Will be set dynamically
-    "type": "9",
-}
-
-# WeChat fakeid mapping
-weixin_accounts = {
-    "量子位": "MzIzNjc1NzUzMw==",
-    "机器之心": "MzA3MzI4MjgzMw==",
-    "海外独角兽": "Mzg2OTY0MDk0NQ==",
-    "五源资本": "MzkwMDI2ODE0OQ==",
-    "Z Lives": "MzkxMzY0NzU3Mg==",
-    "Z Potentials": "MzI4NTgxMDk1NA==",
-    "晚点Auto": "MzkzMDMyNDIxNQ==",
-    "硅兔赛跑": "MzI4MDUzMTc3Mg==",
-    "纪源资本": "MjM5MTk3NTYyMA==",
-    "Founder Park": "Mzg5NTc0MjgwMw==",
-    "甲子光年": "MzU5OTI0NTc3Mg==",
-    "新智元": "MzI3MTA0MTk1MA==",
-    "M小姐研习录": "MzUzNTEyNjc0OA==",
-    "吴说Real": "MzI0ODgzMDE5MA==",
-    "小丸子酱聊商业": "Mzg4ODkwNjA3OQ==",
-    "林坤的学习思考": "Mzg3ODU2OTMzMA==",
-    "线性资本": "MzAwNTAyMDAyNQ==",
-    "36氪pro": "MzUxOTA3MzMzOQ==",
-    "乌鸦智能说": "MzkyNTY1MjE2OA==",
-    "Redbot": "Mzg5ODg0ODMyMg==",
-    "AI寒武纪": "Mzg3MTkxMjYzOA==",
-    "数字生命卡兹克": "MzIyMzA5NjEyMA==",
-    "AI-paperdaily": "MzAxMzQyMzU5Nw=="
-}
 
 # Function to get raw HTML content from the websites using Firecrawl
 def get_raw_html(domain):
@@ -79,11 +31,13 @@ def get_raw_html(domain):
         # Use Jina to get the raw HTML
         url = f'https://r.jina.ai/https://{domain}'
         headers = {
-            'Authorization': f'Bearer {jina_api}'
+            'Authorization': 'Bearer jina_26a656e516224ce28e71cc3b28fa7b07zUchXe4_MJ_935m8SpS9-TNGL--w'
         }
         response = requests.get(url, headers=headers)
+        
         # Check if the request was successful
         response.raise_for_status()  # Raises an exception for 4XX/5XX responses
+        
         # Return the raw HTML content
         return response.text
     except requests.exceptions.RequestException as e:
@@ -111,38 +65,256 @@ def analyze_with_qwen(domain, raw_html):
     )
     return response['output']['choices'][0]['message']['content']
 
-# New function to analyze WeChat articles with Qwen
-def analyze_weixin_articles(account_name, articles_data):
-    # Prepare the article information for the LLM
-    article_info = []
-    for article in articles_data:
-        article_info.append({
-            "title": article.get("title", "无标题"),
-            "link": article.get("link", ""),
-            "publish_date": time.strftime("%Y-%m-%d %H:%M", time.localtime(article.get("create_time", 0))),
-            "content": article.get("html_content", "")[:2000] if "html_content" in article else "无内容"
-        })
+# Function to scrape AI influencer tweets from X (Twitter)
+def scrape_ai_influencer_tweets():
+    # Initialize the ApifyClient with your API token
+    client = ApifyClient("apify_api_kbKxE4fYwbZOMBA30gS7DkbjinZqy91SEHb9")
     
-    # Create a message for the LLM
-    articles_summary = "\n".join([
-        f"标题: {a['title']}\n发布日期: {a['publish_date']}\n链接: {a['link']}\n内容预览: {a['content'][:300]}...\n"
-        for a in article_info
-    ])
+    # Twitter handles of AI researchers and professionals
+    twitter_handles = [
+        "sama",               # Sam Altman
+        "ylecun",             # Yann LeCun
+        "AndrewYNg",          # Andrew Ng
+        "fchollet",           # François Chollet
+        "_KarenHao",          # Karen Hao
+        "karpathy",           # Andrej Karpathy
+        "SchmidhuberAI",      # Jürgen Schmidhuber
+        "sarahookr",          # Sara Hooker
+        "demishassabis",      # Demis Hassabis
+        "saranormous",        # Sarah Guo
+        "hardmaru",           # David Hardmaru
+        "lilianweng",         # Lilian Weng
+        "OriolVinyalsML",     # Oriol Vinyals
+        "Michael_J_Black",    # Michael Black
+        "JeffDean",           # Jeff Dean
+        "goodfellow_ian",     # Ian Goodfellow
+        "achowdhery",         # Aakanksha Chowdhery
+        "PeterDiamandis",     # Peter H. Diamandis
+        "GaryMarcus",         # Gary Marcus
+        "giffmana",           # Lucas Beyer
+        "rasbt",              # Sebastian Raschka
+        "quaesita",           # Cassie Kozyrkov
+        "KateKayeReports",    # Kate Kaye
+        "EMostaque",          # Emad
+        "drfeifei",           # Fei-Fei Li
+        "DrJimFan",           # Jim Fan
+        "omarsar0",           # Elvis Saravia
+        "conniechan",         # Connie Chan
+        "hugo_larochelle",    # Hugo Larochelle
+        "benjedwards",        # Benj Edwards
+        "rebecca_szkutak",    # Becca Szkutak
+        "svlevine",           # Sergey Levine
+        "ericschmidt",        # Eric Schmidt
+        "ilyasut",            # Ilya Sutskever
+        "patrickmineault",    # Patrick Mineault
+        "natashajaques",      # Natasha Jaques
+        "pabbeel",            # Pieter Abbeel
+        "ESYudkowsky",        # Eliezer Yudkowsky
+        "geoffreyhinton",     # Geoffrey Hinton
+        "wintonARK",          # Brett Winton
+        "jeffclune",          # Jeff Clune
+        "RamaswmySridhar",    # Sridhar Ramaswamy
+        "bentossell",         # Ben Tossell
+        "johnschulman2",      # John Schulman
+        "_akhaliq",           # Ahsen Khaliq
+        "quocleix",           # Quoc Le
+        "jackclarkSF",        # Jack Clark
+        "mervenoyann",        # merve
+        "DavidSHolz",         # David
+        "natolambert",        # Nathan Lambert
+        "RichardSocher",      # Richard Socher
+        "mustafasuleymn",     # Mustafa Suleyman
+        "ZoubinGhahrama1",    # Zoubin Ghahramani
+        "nathanbenaich",      # Nathan Benaich
+        "johnvmcdonnell",     # John McDonnell
+        "tunguz",             # Bojan Tunguz
+        "bengoertzel",        # Ben Goertzel
+        "ch402",              # Chris Olah
+        "Kseniase_",          # Ksenia Se
+        "paulg",              # Paul Graham
+        "rsalakhu",           # Russ Salakhutdinov
+        "gdb",                # Greg Brockman
+        "vivnat",             # Vivek Natarajan
+        "bxchen",             # Brian X. Chen
+        "AnimaAnandkumar",    # Anima Anandkumar
+        "JeffreyTowson",      # Jeffrey Towson
+        "Thom_Wolf",          # Thomas Wolf
+        "johnplattml",        # John Platt
+        "SamanyouGarg",       # Samanyou Garg
+        "KirkDBorne",         # Kirk Bourne
+        "Alber_RomGar",       # Alberto Romero
+        "SilverJacket",       # Matthew Hutson
+        "ecsquendor",         # Tim Scarfe
+        "jordnb",             # Jordan Burgess
+        "jluan",              # David Luan
+        "NPCollapse",         # Connor Leahy
+        "NaveenGRao",         # Naveen Rao
+        "azeem",              # Azeem Azhar
+        "Suhail",             # Suhail Doshi
+        "maxjaderberg",       # Max Jaderberg
+        "Kyle_L_Wiggers",     # Kyle Wiggers
+        "cocoweixu",          # Wei Xu
+        "aidangomezzz",       # Aidan Gomez
+        "alexandr_wang",      # Alexandr Wang
+        "CaimingXiong",       # Caiming Xiong
+        "YiMaTweets",         # Yi Ma
+        "notmisha",           # Misha Denil
+        "peteratmsr",         # Peter Lee
+        "shivon",             # Shivon Zilis
+        "jackyliang42",       # Jacky Liang
+        "v_vashishta",        # Vin Vashishta
+        "xdh",                # Xuedong Huang
+        "FryRsquared",        # Hannah Fry
+        "ravi_lsvp",          # Ravi Mhatre
+        "ClementDelangue",    # clem
+        "oh_that_hat",        # Hattie Zhou
+        "sapna",              # Sapna Maheshwari
+        "VRLalchand",         # Vidhi Lalchand
+        "svpino",             # Santiago L Valdarrama
+        "ceobillionaire",     # Vincent Boucher
+        "ykilcher",           # Yannic Kilcher
+        "BornsteinMatt",      # Matt Bornstein
+        "lachygroom",         # Lachy Groom
+        "goodside",           # Riley Goodside
+        "amasad",             # Amjad Masad
+        "polynoamial",        # Noam Brown
+        "sytelus",            # Shital Shah
+    ]
+    
+    # Calculate date range for the last 2 days
+    end_date = datetime.now().strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+    
+    st.write(f"Scraping tweets from {start_date} to {end_date}")
+    
+    # Create directory for results if it doesn't exist
+    os.makedirs("results", exist_ok=True)
+    
+    # Initialize results storage
+    all_tweets = []
+    all_analyses = []
+    
+    # Progress tracking for Streamlit
+    progress = st.progress(0)
+    status_text = st.empty()
+    
+    # CSV for structured data
+    with open("results/ai_influencer_tweets.csv", "w", newline="", encoding="utf-8") as csvfile:
+        csv_writer = csv.writer(csvfile)
+        # Write header
+        csv_writer.writerow(["Author", "Twitter Handle", "text", "createdAt", "replyCount", "likeCount", "retweetCount", "url"])
+        
+        # Iterate through each Twitter handle
+        for i, handle in enumerate(twitter_handles):
+            status_text.text(f"[{i+1}/{len(twitter_handles)}] Scraping tweets for @{handle}...")
+            progress.progress((i+1) / len(twitter_handles))
+            
+            # Prepare the Actor input
+            run_input = {
+                "maxItems": 100,  # Limit to 100 tweets per author
+                "sort": "Latest",
+                "author": handle,
+                "start": start_date,
+                "end": end_date,
+            }
+            
+            # Implement retry logic
+            max_retries = 3
+            retries = 0
+            success = False
+            
+            while retries < max_retries and not success:
+                try:
+                    # Run the Actor and wait for it to finish
+                    run = client.actor("61RPP7dywgiy0JPD0").call(run_input=run_input)
+                    
+                    # Track tweets for this author
+                    author_tweets = []
+                    
+                    # Fetch tweets from the dataset
+                    for tweet in client.dataset(run["defaultDatasetId"]).iterate_items():
+                        # Extract relevant data
+                        author_name = tweet.get("authorName", "")
+                        text = tweet.get("text", "")
+                        date = tweet.get("createdAt", "")
+                        replies = tweet.get("replyCount", 0)
+                        likes = tweet.get("likeCount", 0)
+                        retweets = tweet.get("retweetCount", 0)
+                        url = tweet.get("url", "")
+                        
+                        # Create tweet object
+                        tweet_data = {
+                            "author": author_name,
+                            "handle": handle,
+                            "text": text,
+                            "date": date,
+                            "replies": replies,
+                            "likes": likes,
+                            "retweets": retweets,
+                            "url": url
+                        }
+                        
+                        # Add to collections
+                        author_tweets.append(tweet_data)
+                        all_tweets.append(tweet_data)
+                        
+                        # Write to CSV
+                        csv_writer.writerow([author_name, handle, text, date, replies, likes, retweets, url])
+                    
+                    # Save individual author results to JSON
+                    if author_tweets:
+                        with open(f"results/{handle}_tweets.json", "w", encoding="utf-8") as f:
+                            json.dump(author_tweets, f, indent=4)
+                        
+                        # Analyze tweets with Qwen
+                        analysis = analyze_tweets_with_qwen(handle, author_tweets)
+                        all_analyses.append({
+                            "handle": handle,
+                            "analysis": analysis
+                        })
+                    
+                    st.write(f"  Scraped {len(author_tweets)} tweets for @{handle}")
+                    success = True
+                    
+                except Exception as e:
+                    retries += 1
+                    st.error(f"  Error (attempt {retries}/{max_retries}): {e}")
+                    if retries < max_retries:
+                        st.info(f"  Retrying in 10 seconds...")
+                        time.sleep(10)
+                    else:
+                        st.error(f"  Failed to scrape tweets for @{handle} after {max_retries} attempts.")
+            
+            # Add a delay between authors to respect rate limits
+            if i < len(twitter_handles) - 1:  # Don't delay after the last author
+                time.sleep(3)
+    
+    # Final summary
+    progress.empty()
+    status_text.empty()
+    st.success(f"Scraped a total of {len(all_tweets)} tweets from {len(twitter_handles)} AI influencers")
+    
+    return all_tweets, all_analyses
+
+# Function to analyze tweets with Qwen
+def analyze_tweets_with_qwen(handle, tweets_data):
+    # Prepare tweet text for analysis
+    tweet_content = ""
+    for tweet in tweets_data:
+        tweet_content += f"Tweet: {tweet['text']}\nDate: {tweet['date']}\nURL: {tweet['url']}\n\n"
     
     messages = [
-        {'role': 'system', 'content': 'You are a professional AI researcher analyzing WeChat articles.'},
+        {'role': 'system', 'content': 'You are a professional AI researcher. Analyze the tweets and extract key insights and topics.'},
         {'role': 'user', 'content': f'''
-        分析以下来自微信公众号 "{account_name}" 的文章，提取关键主题并给出简短总结。
-        对每篇文章，提供：
-        1. 文章标题
-        2. 发布日期
-        3. 一句话中文摘要
-        4. 关键观点（1-3个要点）
+        Analyze the following tweets from AI influencer @{handle} and provide:
+        1. 5 key topics or trends in Chinese
+        2. Brief summary of main points in Chinese
+        3. Any significant announcements or news in Chinese
         
-        当前日期: {datetime.date.today()}
+        Current date: {datetime.now().strftime('%Y-%m-%d')}.
         
-        文章信息：
-        {articles_summary}
+        Tweets:
+        {tweet_content}
         '''}
     ]
     
@@ -153,56 +325,8 @@ def analyze_weixin_articles(account_name, articles_data):
         enable_search=True,
         result_format='message'
     )
+    
     return response['output']['choices'][0]['message']['content']
-
-# Function to get the raw HTML of a WeChat article
-def get_weixin_article_html(url):
-    try:
-        # Use Jina to get the raw HTML
-        jina_url = f'https://r.jina.ai/{url}'
-        headers = {
-            'Authorization': f'Bearer {jina_api}'
-        }
-        response = requests.get(jina_url, headers=headers)
-        # Check if the request was successful
-        response.raise_for_status()
-        # Return the raw HTML content
-        return response.text
-    except requests.exceptions.RequestException as e:
-        return f"Error while fetching content from {url}: {str(e)}"
-
-# Function to get WeChat articles from the past 3 days
-def get_weixin_recent_articles(account_name, fakeid):
-    # Update the fakeid in the data
-    weixin_data["fakeid"] = fakeid
-    
-    try:
-        # Get the latest 5 articles (potentially covering 3 days)
-        weixin_data["begin"] = 0
-        weixin_data["count"] = 5
-        
-        content_json = requests.get(weixin_url, headers=weixin_headers, params=weixin_data).json()
-        
-        if "app_msg_list" not in content_json:
-            return f"Error: Could not retrieve articles for {account_name}. Response: {content_json}"
-        
-        content_list = content_json["app_msg_list"]
-        
-        # Filter to only include articles from the last 3 days
-        three_days_ago = time.time() - (3 * 24 * 60 * 60)
-        recent_articles = [article for article in content_list if article.get("create_time", 0) >= three_days_ago]
-        
-        # Get the HTML content for each article
-        for article in recent_articles:
-            print(f"Fetching HTML for: {article['title']}")
-            article["html_content"] = get_weixin_article_html(article["link"])
-            # Add a delay between requests to avoid rate limiting
-            time.sleep(random.randint(2, 4))
-        
-        return recent_articles
-    
-    except Exception as e:
-        return f"Error while fetching WeChat articles for {account_name}: {str(e)}"
 
 # Function for direct chat using Qwen (standard mode)
 def chat_with_qwen(user_message):
@@ -223,14 +347,17 @@ def chat_with_qwen(user_message):
 def chat_with_local_facts(user_message):
     local_facts = st.session_state.get("local_facts", [])
     local_files = st.session_state.get("local_files", [])
+    
     # Build a context string from each stored source – here we simply take the first 1000 characters per source
     context_text = ""
     for source in local_facts:
         context_text += f"【网站】 {source['url']}\n{source['content'][:1000]}\n"
     for file_info in local_files:
         context_text += f"【文件】 {file_info['file_name']}\n{file_info['content'][:1000]}\n"
+    
     if not context_text:
         context_text = "当前没有本地信息。"
+        
     messages = [
         {"role": "system", "content": f"你是一个基于本地事实知识库的智能助手。以下是部分文档内容用于辅助回答问题：\n{context_text}\n请基于这些内容回答用户问题。"},
         {"role": "user", "content": user_message},
@@ -270,11 +397,11 @@ tabs = st.tabs(["热点监控", "定时汇报", "事实知识库 (RAG)", "直接
 with tabs[0]:
     st.header("热点监控")
     
-    # Create two sections with columns
-    col1, col2 = st.columns(2)
+    # Create subtabs for different monitoring sources
+    monitoring_tabs = st.tabs(["网站监控", "X/Twitter监控"])
     
-    with col1:
-        st.subheader("网站监控")
+    # Website monitoring tab
+    with monitoring_tabs[0]:
         st.write("监控推流的各大信息网站的热点")
         default_websites = ["lilianweng.github.io"]
         input_websites = st.text_area("网站域名 (逗号分隔):", value=', '.join(default_websites), height=100)
@@ -292,52 +419,82 @@ with tabs[0]:
                     st.text_area(f"{site} 热点分析", analysis, height=300)
                 st.markdown("---")
     
-    with col2:
-        st.subheader("微信公众号监控")
-        st.write("监控微信公众号最近3天的文章")
+    # X/Twitter monitoring tab (NEW)
+    with monitoring_tabs[1]:
+        st.write("监控AI领域专家Twitter动态")
         
-        # Selection for WeChat accounts
-        default_accounts = ["机器之心", "量子位", "新智元"]
-        selected_accounts = st.multiselect(
-            "选择要监控的微信公众号:",
-            options=list(weixin_accounts.keys()),
-            default=default_accounts
-        )
+        # Display information about the scraper
+        st.info("这个功能会抓取AI领域专家的Twitter动态，并通过同样的Qwen模型进行分析，提取关键见解。")
         
-        if st.button("开始微信监控"):
-            if not selected_accounts:
-                st.warning("请选择至少一个微信公众号")
+        # Options for scraping
+        top_influencers = ["sama", "ylecun", "AndrewYNg", "fchollet", "karpathy", "demishassabis", "drfeifei", "geoffreyhinton", "goodside", "EMostaque"]
+        selected_handles = st.multiselect("选择要监控的Twitter账号 (最多10个):", options=top_influencers, default=top_influencers[:3])
+        
+        # Limit the number of selected handles
+        max_handles = min(len(selected_handles) if selected_handles else 3, 10)
+        
+        # Scrape button
+        if st.button("开始抓取X/Twitter数据"):
+            if selected_handles:
+                st.session_state["twitter_handles"] = selected_handles[:max_handles]
+                st.write(f"### 正在抓取 {len(st.session_state['twitter_handles'])} 个AI专家的Twitter数据...")
+                
+                # Call the function to scrape and analyze tweets
+                all_tweets, all_analyses = scrape_ai_influencer_tweets()
+                
+                # Store in session state for persistence
+                st.session_state["twitter_results"] = {
+                    "tweets": all_tweets,
+                    "analyses": all_analyses
+                }
+                
+                # Display analyses
+                if all_analyses:
+                    for analysis_item in all_analyses:
+                        handle = analysis_item["handle"]
+                        analysis = analysis_item["analysis"]
+                        
+                        st.subheader(f"@{handle} 分析")
+                        st.text_area(f"{handle} 推文分析", analysis, height=250)
+                        
+                        # Get tweets for this handle
+                        handle_tweets = [t for t in all_tweets if t["handle"] == handle]
+                        
+                        with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
+                            for tweet in handle_tweets:
+                                st.markdown(f"""
+                                **日期：** {tweet['date']}  
+                                **内容：** {tweet['text']}  
+                                **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                                **链接：** [查看原文]({tweet['url']})
+                                ---
+                                """)
             else:
-                for account in selected_accounts:
-                    st.write(f"### 正在拉取 {account} 的最近文章...")
-                    fakeid = weixin_accounts.get(account)
-                    
-                    if not fakeid:
-                        st.error(f"未找到 {account} 的fakeid")
-                        continue
-                    
-                    articles = get_weixin_recent_articles(account, fakeid)
-                    
-                    if isinstance(articles, str) and ('Error' in articles):
-                        st.error(articles)
-                    else:
-                        # Display basic article info
-                        st.write(f"获取了 {len(articles)} 篇最近的文章")
-                        
-                        # Create a simple table with article info
-                        article_table = []
-                        for article in articles:
-                            create_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(article.get("create_time", 0)))
-                            article_table.append([article.get("title", "无标题"), create_time])
-                        
-                        st.table(pd.DataFrame(article_table, columns=["标题", "发布时间"]))
-                        
-                        # Analyze articles with Qwen
-                        st.write("正在分析文章内容...")
-                        analysis = analyze_weixin_articles(account, articles)
-                        st.text_area(f"{account} 文章分析", analysis, height=300)
-                    
-                    st.markdown("---")
+                st.warning("请选择至少一个Twitter账号进行监控。")
+        
+        # Display previously fetched results if available
+        elif "twitter_results" in st.session_state and st.session_state["twitter_results"]:
+            st.write("### 最近一次分析结果")
+            
+            for analysis_item in st.session_state["twitter_results"]["analyses"]:
+                handle = analysis_item["handle"]
+                analysis = analysis_item["analysis"]
+                
+                st.subheader(f"@{handle} 分析")
+                st.text_area(f"{handle} 推文分析", analysis, height=250)
+                
+                # Get tweets for this handle
+                handle_tweets = [t for t in st.session_state["twitter_results"]["tweets"] if t["handle"] == handle]
+                
+                with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
+                    for tweet in handle_tweets:
+                        st.markdown(f"""
+                        **日期：** {tweet['date']}  
+                        **内容：** {tweet['text']}  
+                        **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                        **链接：** [查看原文]({tweet['url']})
+                        ---
+                        """)
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:

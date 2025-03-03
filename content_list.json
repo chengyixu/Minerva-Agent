@@ -1,122 +1,82 @@
 [
     {
-        "aid": "2247505178_1",
+        "aid": "2247509117_1",
         "album_id": "0",
         "appmsg_album_infos": [],
-        "appmsgid": 2247505178,
-        "checking": 0,
-        "copyright_type": 2,
-        "cover": "https://mmbiz.qlogo.cn/sz_mmbiz_jpg/3EbGouibNp0EETqgm53eTZhyVnac6vo0tf20vNgX4KvYsURVjHh4ktqqDb1d1s5kjtBSALEiahJWmglf4NS9fGzw/0?wx_fmt=jpeg",
-        "create_time": 1739507965,
-        "digest": "在巨大的创新面前，噪音会随着时间逐渐消减。像 DeepSeek 的 V2、V3 和 R1 论文这种创造的美，你只要去体会它、理解它，你一定能感受到，真的非常非常地美。\r今天AI渗透率只有 5%。剩下 95% 的人第一款AI应用是什么？",
-        "has_red_packet_cover": 0,
-        "is_pay_subscribe": 0,
-        "item_show_type": 11,
-        "itemidx": 1,
-        "link": "http://mp.weixin.qq.com/s?__biz=MzUzNTEyNjc0OA==&mid=2247505178&idx=1&sn=bedda44cba7131ed94105a315a96c1fc&chksm=fa88a2a9cdff2bbfc877f650d814b98e3187be369b491173961b6be881fe1cc2356f4e96c926#rd",
-        "media_duration": "0:00",
-        "mediaapi_publish_status": 0,
-        "pay_album_info": {
-            "appmsg_album_infos": []
-        },
-        "tagid": [],
-        "title": "一篇不一样的DeepSeek R1 万字赏析：一场精彩绝伦的探索，技术背后的创造之美",
-        "update_time": 1739507965
-    },
-    {
-        "aid": "2247505177_1",
-        "album_id": "0",
-        "appmsg_album_infos": [],
-        "appmsgid": 2247505177,
-        "checking": 0,
-        "copyright_type": 2,
-        "cover": "https://mmbiz.qlogo.cn/sz_mmbiz_jpg/3EbGouibNp0EETqgm53eTZhyVnac6vo0tf20vNgX4KvYsURVjHh4ktqqDb1d1s5kjtBSALEiahJWmglf4NS9fGzw/0?wx_fmt=jpeg",
-        "create_time": 1739507886,
-        "digest": "在巨大的创新面前，噪音会随着时间逐渐消减。像 DeepSeek 的 V2、V3 和 R1 论文这种创造的美，你只要去体会它、理解它，你一定能感受到，真的非常非常地美。\r今天AI渗透率只有 5%。剩下 95% 的人第一款AI应用是什么？",
-        "has_red_packet_cover": 0,
-        "is_pay_subscribe": 0,
-        "item_show_type": 11,
-        "itemidx": 1,
-        "link": "http://mp.weixin.qq.com/s?__biz=MzUzNTEyNjc0OA==&mid=2247505177&idx=1&sn=35da3d6571eb78b0f1eea04b6ca675ab&chksm=fa88a2aacdff2bbc91857f9b043490fe48e7e8a71adf9c2ad7c2454339e36cc6ffd1ed744ec4#rd",
-        "media_duration": "0:00",
-        "mediaapi_publish_status": 0,
-        "pay_album_info": {
-            "appmsg_album_infos": []
-        },
-        "tagid": [],
-        "title": "一篇不一样的DeepSeek R1 万字赏析：一场精彩绝伦的探索，技术背后的创造之美",
-        "update_time": 1739507886
-    },
-    {
-        "aid": "2247505176_1",
-        "album_id": "0",
-        "appmsg_album_infos": [],
-        "appmsgid": 2247505176,
-        "checking": 0,
-        "copyright_type": 2,
-        "cover": "https://mmbiz.qlogo.cn/sz_mmbiz_jpg/3EbGouibNp0EETqgm53eTZhyVnac6vo0tf20vNgX4KvYsURVjHh4ktqqDb1d1s5kjtBSALEiahJWmglf4NS9fGzw/0?wx_fmt=jpeg",
-        "create_time": 1739507730,
-        "digest": "在巨大的创新面前，噪音会随着时间逐渐消减。像 DeepSeek 的 V2、V3 和 R1 论文这种创造的美，你只要去体会它、理解它，你一定能感受到，真的非常非常地美。\r\n今天AI渗透率只有 5%。剩下 95% 的人第一款 AI 应用会是什么",
-        "has_red_packet_cover": 0,
-        "is_pay_subscribe": 0,
-        "item_show_type": 11,
-        "itemidx": 1,
-        "link": "http://mp.weixin.qq.com/s?__biz=MzUzNTEyNjc0OA==&mid=2247505176&idx=1&sn=9f6208034a5e5216c678fd508a2291a1&chksm=fa88a2abcdff2bbd380fe88da90cb2b2563beaf8e80bf763d2958496d632198bee88529b2bf2#rd",
-        "media_duration": "0:00",
-        "mediaapi_publish_status": 0,
-        "pay_album_info": {
-            "appmsg_album_infos": []
-        },
-        "tagid": [],
-        "title": "一篇不一样的DeepSeek R1 万字赏析：一场精彩绝伦的探索，一份创新背后的创造之美",
-        "update_time": 1739507730
-    },
-    {
-        "aid": "2247505175_1",
-        "album_id": "0",
-        "appmsg_album_infos": [],
-        "appmsgid": 2247505175,
-        "checking": 0,
-        "copyright_type": 2,
-        "cover": "https://mmbiz.qlogo.cn/sz_mmbiz_jpg/3EbGouibNp0EETqgm53eTZhyVnac6vo0tf20vNgX4KvYsURVjHh4ktqqDb1d1s5kjtBSALEiahJWmglf4NS9fGzw/0?wx_fmt=jpeg",
-        "create_time": 1739506700,
-        "digest": "在巨大的创新面前，噪音会随着时间逐渐消减。像 DeepSeek 的 V2、V3 和 R1 论文这种创造的美，你只要去体会它、理解它，你一定能感受到，真的非常非常地美。\r\n今天AI渗透率只有 5%。剩下 95% 的人第一款 AI 应用会是什么？",
-        "has_red_packet_cover": 0,
-        "is_pay_subscribe": 0,
-        "item_show_type": 11,
-        "itemidx": 1,
-        "link": "http://mp.weixin.qq.com/s?__biz=MzUzNTEyNjc0OA==&mid=2247505175&idx=1&sn=722d19b9b626692555004b7bf04fe62f&chksm=fa88a2a4cdff2bb2137337adcb6a68f8308697ccfbbee0b46038e2b601897c8f51e05cb907c5#rd",
-        "media_duration": "0:00",
-        "mediaapi_publish_status": 0,
-        "pay_album_info": {
-            "appmsg_album_infos": []
-        },
-        "tagid": [],
-        "title": "一篇不一样的DeepSeek R1 万字赏析：一场精彩绝伦的探索，一份创新背后的创造之美",
-        "update_time": 1739506700
-    },
-    {
-        "aid": "2247505169_1",
-        "album_id": "0",
-        "appmsg_album_infos": [],
-        "appmsgid": 2247505169,
+        "appmsgid": 2247509117,
         "checking": 0,
         "copyright_type": 0,
-        "cover": "https://mmbiz.qlogo.cn/mmbiz_jpg/hxjYKa0HByIG94SV3yVKjxCiaphVeoGbHo3jNWLpS4PSXmQ39eepoqNpZlKBltBs3CGNzY3SlLxmIKDc9WFliatw/0?wx_fmt=jpeg",
-        "create_time": 1739240838,
-        "digest": "回到推理模型的天花板与起点，DeepSeek R1 对标的OpenAI o3，以及未来潜力最大的coding agent场景，3小时中美连线，来自硅谷最一线的观察与认知，希望在这个信息纷杂的时代，能让你离技术的本质与AGI的未来更近一些。",
+        "cover": "https://mmbiz.qlogo.cn/sz_mmbiz_jpg/aCITy8uI9icnMTfK9dCmRTJZvkB99q7Fm7QCOS1tduQAhUIiaBSELLtY4GrkoQCo0RqaxxzuicSqheFt8U0Egg6EA/0?wx_fmt=jpeg",
+        "create_time": 1740958459,
+        "digest": "",
         "has_red_packet_cover": 0,
         "is_pay_subscribe": 0,
         "item_show_type": 0,
         "itemidx": 1,
-        "link": "http://mp.weixin.qq.com/s?__biz=MzUzNTEyNjc0OA==&mid=2247505169&idx=1&sn=8dbf3e771612e8f25390eb3ae846a3ad&chksm=fa88a2a2cdff2bb41af6eeba2fa9bb4e0366e09d97699fc9115a98a9c04c35c7b84e7630fb6b#rd",
+        "link": "http://mp.weixin.qq.com/s?__biz=MzI0ODgzMDE5MA==&mid=2247509117&idx=1&sn=f79c3f595c842fb7e787e6f9d9422698&chksm=e99825fcdeefacea6537cf94a95a6a4e718ce1f9fc7b6f8fce261c43577efd2c657b1be1092a#rd",
         "media_duration": "0:00",
         "mediaapi_publish_status": 0,
         "pay_album_info": {
             "appmsg_album_infos": []
         },
         "tagid": [],
-        "title": "【万字访谈实录】DeepSeek R1 发布前夜，3小时硅谷连线，深度解读 Coding Agent & OpenAI o3",
-        "update_time": 1739245500
+        "title": "特朗普发文推动国家加密货币储备：提及 BTC ETH XRP SOL ADA",
+        "update_time": 1740963600
+    },
+    {
+        "aid": "2247509105_1",
+        "album_id": "0",
+        "appmsg_album_infos": [],
+        "appmsgid": 2247509105,
+        "checking": 0,
+        "copyright_type": 0,
+        "cover": "https://mmbiz.qlogo.cn/sz_mmbiz_jpg/aCITy8uI9icnhfRJKJkICmdbqCnZcOybUwYfTbdicqQ7xBv0WrmYYQeGrZtA0qM0HdpPQzibsPxJgR8LLYulibIiaQg/0?wx_fmt=jpeg",
+        "create_time": 1740876801,
+        "digest": "",
+        "has_red_packet_cover": 0,
+        "is_pay_subscribe": 0,
+        "item_show_type": 0,
+        "itemidx": 1,
+        "link": "http://mp.weixin.qq.com/s?__biz=MzI0ODgzMDE5MA==&mid=2247509105&idx=1&sn=dc7a3a5e4743ef5585abedbd318a6814&chksm=e99825f0deeface6890503b412a391b4672fe376aef86ce6f3f9c2ef40af260388d8f8570ebd#rd",
+        "media_duration": "0:00",
+        "mediaapi_publish_status": 0,
+        "pay_album_info": {
+            "appmsg_album_infos": []
+        },
+        "tagid": [],
+        "title": "危急时刻：Bybit CEO Ben 揭秘 15 亿美元被盗时的关键决策",
+        "update_time": 1740877200
+    },
+    {
+        "aid": "2247509104_1",
+        "album_id": "2430816710862733313",
+        "appmsg_album_infos": [
+            {
+                "album_id": 2430816710862733313,
+                "appmsg_album_infos": [],
+                "id": "2430816710862733313",
+                "tagSource": 4,
+                "title": "吴说每周精选：新闻最Top10与热门文章"
+            }
+        ],
+        "appmsgid": 2247509104,
+        "checking": 0,
+        "copyright_type": 1,
+        "cover": "https://mmbiz.qlogo.cn/sz_mmbiz_jpg/aCITy8uI9icnhfRJKJkICmdbqCnZcOybUMHql5W46nmA3COqAf2bp6LTvCoun1KZ2UkdtHjT1x4I5s4sYIYKz6g/0?wx_fmt=jpeg",
+        "create_time": 1740790430,
+        "digest": "",
+        "has_red_packet_cover": 0,
+        "is_pay_subscribe": 0,
+        "item_show_type": 0,
+        "itemidx": 1,
+        "link": "http://mp.weixin.qq.com/s?__biz=MzI0ODgzMDE5MA==&mid=2247509104&idx=1&sn=6f647eca08a9dbcdd5af2d0fabcb34c4&chksm=e99825f1deeface745ff4a4857dd603782ee49f68fb2a3adc25f7c36a3d5e18cade6088e4152#rd",
+        "media_duration": "0:00",
+        "mediaapi_publish_status": 0,
+        "pay_album_info": {
+            "appmsg_album_infos": []
+        },
+        "tagid": [],
+        "title": "吴说周精选：SEC 终止对多家加密公司调查、比特币跌破八万、OKX 与美国和解与新闻 Top10",
+        "update_time": 1740790800
     }
 ]
