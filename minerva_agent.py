@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 import streamlit as st
 import datetime
 import dashscope
@@ -73,18 +73,18 @@ def chat_with_local_facts(user_message):
     local_facts = st.session_state.get("local_facts", [])
     local_files = st.session_state.get("local_files", [])
     
-    # Build a context string from each stored source �C here we simply take the first 1000 characters per source
+    # Build a context string from each stored source – here we simply take the first 1000 characters per source
     context_text = ""
     for source in local_facts:
-        context_text += f"����վ�� {source['url']}\n{source['content'][:1000]}\n"
+        context_text += f"【网站】 {source['url']}\n{source['content'][:1000]}\n"
     for file_info in local_files:
-        context_text += f"���ļ��� {file_info['file_name']}\n{file_info['content'][:1000]}\n"
+        context_text += f"【文件】 {file_info['file_name']}\n{file_info['content'][:1000]}\n"
     
     if not context_text:
-        context_text = "��ǰû�б�����Ϣ��"
+        context_text = "当前没有本地信息。"
         
     messages = [
-        {"role": "system", "content": f"����һ�����ڱ�����ʵ֪ʶ����������֡������ǲ����ĵ��������ڸ����ش����⣺\n{context_text}\n�������Щ���ݻش��û����⡣"},
+        {"role": "system", "content": f"你是一个基于本地事实知识库的智能助手。以下是部分文档内容用于辅助回答问题：\n{context_text}\n请基于这些内容回答用户问题。"},
         {"role": "user", "content": user_message},
     ]
     response = dashscope.Generation.call(
@@ -107,7 +107,7 @@ def chat_with_deepseek(user_message):
         {"role": "user", "content": user_message},
     ]
     completion = client.chat.completions.create(
-        model="deepseek-r1",  # ʹ�� deepseek ģ��
+        model="deepseek-r1",  # 使用 deepseek 模型
         messages=messages
     )
     return completion.choices[0].message.content
@@ -116,48 +116,48 @@ def chat_with_deepseek(user_message):
 st.title("Minerva Agent")
 
 # Create four tabs for different functionalities
-tabs = st.tabs(["�ȵ���", "��ʱ�㱨", "��ʵ֪ʶ�� (RAG)", "ֱ������"])
+tabs = st.tabs(["热点监控", "定时汇报", "事实知识库 (RAG)", "直接聊天"])
 
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
-    st.header("�ȵ���")
-    st.write("��������ĸ�����Ϣ��վ���ȵ�")
+    st.header("热点监控")
+    st.write("监控推流的各大信息网站的热点")
     default_websites = ["lilianweng.github.io"]
-    input_websites = st.text_area("��վ���� (���ŷָ�):", value=', '.join(default_websites), height=100)
+    input_websites = st.text_area("网站域名 (逗号分隔):", value=', '.join(default_websites), height=100)
     websites = [site.strip() for site in input_websites.split(',')]
     
-    if st.button("��ʼ���"):
+    if st.button("开始监控"):
         for site in websites:
-            st.write(f"### ������ȡ {site} ������...")
+            st.write(f"### 正在拉取 {site} 的数据...")
             raw_html = get_raw_html(site)
             if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
                 st.error(raw_html)
             else:
-                st.write("������ȡ�ɹ������ڷ����ȵ�����...")
+                st.write("数据拉取成功，正在分析热点内容...")
                 analysis = analyze_with_qwen(site, raw_html)
-                st.text_area(f"{site} �ȵ����", analysis, height=300)
+                st.text_area(f"{site} 热点分析", analysis, height=300)
             st.markdown("---")
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
-    st.header("��ʱ�㱨")
-    st.write("��ʱ���ϻ㱨������Ϣ��վ����Ҫ����")
-    st.info("������")
-    scheduled_time = st.time_input("ѡ��㱨ʱ�䣨����ÿ�ն�ʱ��", datetime.time(hour=12, minute=0))
-    st.write(f"��ǰ���õĻ㱨ʱ��Ϊ��{scheduled_time}")
+    st.header("定时汇报")
+    st.write("定时整合汇报各大信息网站的重要内容")
+    st.info("开发中")
+    scheduled_time = st.time_input("选择汇报时间（例如每日定时）", datetime.time(hour=12, minute=0))
+    st.write(f"当前设置的汇报时间为：{scheduled_time}")
 
 # ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[2]:
-    st.header("��ʵ֪ʶ��")
-    st.write("�ϴ��ļ���������վ��ϵͳ����ȡ���ݣ���������ʱ������Щ��Ϣ���лش�")
+    st.header("事实知识库")
+    st.write("上传文件或添加网站，系统会提取内容，并在聊天时基于这些信息进行回答。")
     
-    # Form to add a new website source �C it immediately fetches and stores content.
+    # Form to add a new website source – it immediately fetches and stores content.
     with st.form("add_source_form"):
-        new_source = st.text_input("��������ϢԴ��ַ:")
-        source_desc = st.text_area("��ϢԴ����:")
-        submitted = st.form_submit_button("������ϢԴ")
+        new_source = st.text_input("输入新信息源网址:")
+        source_desc = st.text_area("信息源描述:")
+        submitted = st.form_submit_button("添加信息源")
         if submitted and new_source:
-            st.info(f"���ڴ� {new_source} ץȡ����...")
+            st.info(f"正在从 {new_source} 抓取内容...")
             # Remove potential protocol parts for get_raw_html function
             domain = new_source.replace("https://", "").replace("http://", "").strip()
             raw_content = get_raw_html(domain)
@@ -167,18 +167,18 @@ with tabs[2]:
                 "desc": source_desc,
                 "content": raw_content
             })
-            st.success(f"��ϢԴ {new_source} �����ӣ�����ȡ���ݣ�")
+            st.success(f"信息源 {new_source} 已添加，并提取内容！")
     
     st.markdown("---")
-    # Form to upload files �C the app processes and extracts text content.
+    # Form to upload files – the app processes and extracts text content.
     with st.form("upload_file_form", clear_on_submit=True):
-        uploaded_files = st.file_uploader("ѡ��Ҫ�ϴ����ļ���֧�����и�ʽ��", accept_multiple_files=True)
-        file_submitted = st.form_submit_button("�ϴ��ļ�")
+        uploaded_files = st.file_uploader("选择要上传的文件（支持所有格式）", accept_multiple_files=True)
+        file_submitted = st.form_submit_button("上传文件")
         if file_submitted and uploaded_files:
             for file in uploaded_files:
                 try:
                     file_bytes = file.getvalue()
-                    # ���Խ���Ϊ UTF-8 �ı�
+                    # 尝试解码为 UTF-8 文本
                     try:
                         file_text = file_bytes.decode("utf-8")
                     except Exception:
@@ -188,32 +188,32 @@ with tabs[2]:
                         "file_name": file.name,
                         "content": file_text
                     })
-                    st.success(f"�ļ� {file.name} ���ϴ���������")
+                    st.success(f"文件 {file.name} 已上传并处理！")
                 except Exception as e:
-                    st.error(f"�����ļ� {file.name} ʱ������{e}")
+                    st.error(f"处理文件 {file.name} 时出错：{e}")
     
-    st.markdown("### ��ǰ������Ϣ")
+    st.markdown("### 当前本地信息")
     if st.session_state["local_facts"]:
-        st.write("#### ��վ��Ϣ")
+        st.write("#### 网站信息")
         for idx, fact in enumerate(st.session_state["local_facts"], start=1):
-            st.write(f"**{idx}.** {fact['url']} �� {fact['desc']}")
+            st.write(f"**{idx}.** {fact['url']} — {fact['desc']}")
     else:
-        st.info("��û�������κ���վ��Ϣ��")
+        st.info("还没有添加任何网站信息。")
     
     if st.session_state["local_files"]:
-        st.write("#### �ϴ����ļ�")
+        st.write("#### 上传的文件")
         for idx, file_info in enumerate(st.session_state["local_files"], start=1):
             st.write(f"**{idx}.** {file_info['file_name']}")
     else:
-        st.info("��û���ϴ��κ��ļ���")
+        st.info("还没有上传任何文件。")
 
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
-    st.header("ֱ������")
-    st.write("���� Qwen����ģ�͡�������Ϣ���Լ� Deepseek ģ�ͣ�������ֱ���� AI ���жԻ���")
+    st.header("直接聊天")
+    st.write("基于 Qwen、大模型、本地信息库以及 Deepseek 模型，您可以直接与 AI 进行对话。")
     
-    # ѡ������ģʽ������ Qwen������֪ʶ�� (RAG) �� Deepseek ����ѡ��
-    chat_mode = st.radio("ѡ������ģʽ", ("Qwen����", "����֪ʶ����(Qwen)", "Deepseek����"))
+    # 选择聊天模式：包含 Qwen、本地知识库 (RAG) 和 Deepseek 聊天选项
+    chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天(Qwen)", "Deepseek聊天"))
     
     # Maintain conversation history in session state
     if "chat_history" not in st.session_state:
@@ -221,21 +221,21 @@ with tabs[3]:
     
     # Chat input form (clears on submit)
     with st.form("chat_form", clear_on_submit=True):
-        chat_input = st.text_input("����������Ϣ��")
-        submitted = st.form_submit_button("����")
+        chat_input = st.text_input("输入您的消息：")
+        submitted = st.form_submit_button("发送")
         if submitted and chat_input:
             st.session_state["chat_history"].append({"role": "user", "content": chat_input})
-            if chat_mode == "Qwen����":
+            if chat_mode == "Qwen聊天":
                 reply = chat_with_qwen(chat_input)
-            elif chat_mode == "����֪ʶ����(Qwen)":
+            elif chat_mode == "本地知识聊天(Qwen)":
                 reply = chat_with_local_facts(chat_input)
-            elif chat_mode == "Deepseek����":
+            elif chat_mode == "Deepseek聊天":
                 reply = chat_with_deepseek(chat_input)
             st.session_state["chat_history"].append({"role": "assistant", "content": reply})
     
-    st.markdown("### �����¼")
+    st.markdown("### 聊天记录")
     for message in st.session_state["chat_history"]:
         if message["role"] == "user":
-            st.markdown(f"**��:** {message['content']}")
+            st.markdown(f"**您:** {message['content']}")
         else:
             st.markdown(f"**AI:** {message['content']}")
