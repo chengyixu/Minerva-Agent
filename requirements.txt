@@ -32,3 +32,5 @@ simplejson==3.19.3
 # oss2==2.19.0
 # sortedcontainers==2.4.0
 # addict==2.4.0s
+config
+selenium
