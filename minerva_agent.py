@@ -6,6 +6,14 @@ from firecrawl import FirecrawlApp
 import os
 from openai import OpenAI 
 
+# Initialize session state variables
+if "local_facts" not in st.session_state:
+    st.session_state["local_facts"] = []
+if "local_files" not in st.session_state:
+    st.session_state["local_files"] = []
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
 app = FirecrawlApp(api_key=fire_api)
@@ -191,14 +199,14 @@ with tabs[2]:
                     st.error(f"处理文件 {file.name} 时出错：{e}")
     
     st.markdown("### 当前本地信息")
-    if st.session_state["local_facts"]:
+    if len(st.session_state["local_facts"]) > 0:
         st.write("#### 网站信息")
         for idx, fact in enumerate(st.session_state["local_facts"], start=1):
             st.write(f"**{idx}.** {fact['url']} — {fact['desc']}")
     else:
         st.info("还没有添加任何网站信息。")
     
-    if st.session_state["local_files"]:
+    if len(st.session_state["local_files"]) > 0:
         st.write("#### 上传的文件")
         for idx, file_info in enumerate(st.session_state["local_files"], start=1):
             st.write(f"**{idx}.** {file_info['file_name']}")
@@ -212,10 +220,6 @@ with tabs[3]:
     
     # 选择聊天模式：包含 Qwen、本地知识库 (RAG) 和 Deepseek 聊天选项
     chat_mode = st.radio("选择聊天模式", ("Qwen聊天", "本地知识聊天(Qwen)", "Deepseek聊天"))
-    
-    # Maintain conversation history in session state
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
     
     # Chat input form (clears on submit)
     with st.form("chat_form", clear_on_submit=True):
