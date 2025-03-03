@@ -23,10 +23,12 @@ if "twitter_results" not in st.session_state:  # New state for Twitter results
     st.session_state["twitter_results"] = []
 if "ai_insights" not in st.session_state:  # New state for AI insights
     st.session_state["ai_insights"] = None
+
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
 app = FirecrawlApp(api_key=fire_api)
 jina_api = "jina_26a656e516224ce28e71cc3b28fa7b07zUchXe4_MJ_935m8SpS9-TNGL--w"
+
 # Function to get raw HTML content from the websites using Firecrawl
 def get_raw_html(domain):
     try:
@@ -44,6 +46,7 @@ def get_raw_html(domain):
         return response.text
     except requests.exceptions.RequestException as e:
         return f"Error while fetching content from {domain}: {str(e)}"
+
 # Function to prepare the message for Qwen LLM analysis
 def analyze_with_qwen(domain, raw_html):
     messages = [
@@ -65,49 +68,40 @@ def analyze_with_qwen(domain, raw_html):
         result_format='message'
     )
     return response['output']['choices'][0]['message']['content']
-# Function to batch translate tweets
+
+# Function to translate tweet text using Qwen
+def translate_tweet_with_qwen(tweet_text):
+    messages = [
+        {'role': 'system', 'content': 'You are a professional translator. Translate the following text from English to Chinese.'},
+        {'role': 'user', 'content': f'''
+        Translate the following tweet from English to Chinese:
+        
+        {tweet_text}
+        '''}
+    ]
+    
+    response = dashscope.Generation.call(
+        api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
+        model="qwen-turbo",
+        messages=messages,
+        result_format='message'
+    )
+    
+    return response['output']['choices'][0]['message']['content']
+
+# Function to batch translate tweets - MODIFIED to use Qwen for translation
 def batch_translate_tweets(tweets):
     if not tweets:
         return tweets  # Return empty list if no tweets
-        
-    client = OpenAI(
-        api_key=os.getenv("DASHSCOPE_API_KEY", "sk-1a28c3fcc7e044cbacd6faf47dc89755"),
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    )
     
-    # Prepare the request with numbered tweets
-    prompt = "Translate each of the following numbered tweets from English to Chinese. Respond with the same numbered format:\n\n"
-    
-    for i, tweet in enumerate(tweets, 1):
-        prompt += f"Tweet {i}: {tweet['text']}\n\n"
-    
-    messages = [
-        {"role": "system", "content": "You are a professional translator. Translate each tweet and maintain the same numbering format in your response."},
-        {"role": "user", "content": prompt}
-    ]
-    
-    completion = client.chat.completions.create(
-        model="deepseek-r1",
-        messages=messages
-    )
-    
-    response_text = completion.choices[0].message.content
-    
-    # Parse the response to extract translations
-    import re
-    
-    translations = {}
-    pattern = r'Tweet (\d+): ([\s\S]*?)(?=Tweet \d+:|$)'
-    matches = re.findall(pattern, response_text)
-    
-    for match in matches:
-        tweet_num = int(match[0])
-        translation = match[1].strip()
-        translations[tweet_num] = translation
-    
-    # Add translations to tweets
-    for i, tweet in enumerate(tweets, 1):
-        tweet['translation'] = translations.get(i, "Translation not available")
+    # Process each tweet individually
+    for tweet in tweets:
+        if 'text' in tweet and tweet['text'].strip():
+            # Translate the text with Qwen
+            translation = translate_tweet_with_qwen(tweet['text'])
+            tweet['translation'] = translation
+        else:
+            tweet['translation'] = "无文本可翻译"
     
     return tweets
 
@@ -273,6 +267,7 @@ def scrape_ai_influencer_tweets():
     st.success(f"Scraped a total of {len(all_tweets)} tweets from {len(twitter_handles)} AI influencers")
     
     return all_tweets, all_analyses
+
 # Function to analyze tweets with Qwen
 def analyze_tweets_with_qwen(handle, tweets_data):
     # Prepare tweet text for analysis
@@ -304,6 +299,7 @@ def analyze_tweets_with_qwen(handle, tweets_data):
     )
     
     return response['output']['choices'][0]['message']['content']
+
 # New function to extract AI insights from collected tweets using Deepseek
 def extract_ai_insights_with_deepseek(tweets_data):
     # Organize tweets by their importance (using likes, retweets as indicators)
@@ -354,6 +350,7 @@ def extract_ai_insights_with_deepseek(tweets_data):
     )
     
     return completion.choices[0].message.content
+
 # Function for direct chat using Qwen (standard mode)
 def chat_with_qwen(user_message):
     messages = [
@@ -368,6 +365,7 @@ def chat_with_qwen(user_message):
         result_format='message'
     )
     return response['output']['choices'][0]['message']['content']
+
 # UPDATED: Function for chat using local factual knowledge (RAG)
 def chat_with_local_facts(user_message):
     local_facts = st.session_state.get("local_facts", [])
@@ -395,6 +393,7 @@ def chat_with_local_facts(user_message):
         result_format='message'
     )
     return response['output']['choices'][0]['message']['content']
+
 # Function for direct chat using Deepseek model
 def chat_with_deepseek(user_message):
     client = OpenAI(
@@ -410,10 +409,13 @@ def chat_with_deepseek(user_message):
         messages=messages
     )
     return completion.choices[0].message.content
+
 # ----------------------- Streamlit UI -----------------------
 st.title("Minerva Agent")
+
 # Create four tabs for different functionalities
 tabs = st.tabs(["热点监控", "定时汇报", "事实知识库 (RAG)", "直接聊天"])
+
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
     st.header("热点监控")
@@ -429,9 +431,9 @@ with tabs[0]:
         "muennighoff.github.io/",
         "thomwolf.io/",
         "dennyzhou.github.io/",
-        "https://aiera.com.cn/news/",
-        "https://www.jiqizhixin.com/",
-        "https://foresightnews.pro/column/detail/101",
+        "aiera.com.cn/news/",
+        "www.jiqizhixin.com/",
+        "foresightnews.pro/column/detail/101",
         
         ]
         input_websites = st.text_area("网站域名 (逗号分隔),从www开始, 例如（www.jasonwei.net/blog）:", value=', '.join(default_websites), height=100)
@@ -507,7 +509,7 @@ with tabs[0]:
                                     **作者：** {tweet['author']} (@{tweet['handle']})  
                                     **日期：** {tweet['date']}  
                                     **原文：** {tweet['text']}  
-                                    **中文翻译：** {tweet.get('translation', '翻译不可用')}  
+                                    **中文翻译：** {tweet['translation']}  
                                     **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
                                     **链接：** [查看原文]({tweet['url']})
                                     """)
@@ -521,7 +523,7 @@ with tabs[0]:
                                     **作者：** {tweet['author']} (@{tweet['handle']})  
                                     **日期：** {tweet['date']}  
                                     **原文：** {tweet['text']}  
-                                    **中文翻译：** {tweet.get('translation', '翻译不可用')}  
+                                    **中文翻译：** {tweet['translation']}  
                                     **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
                                     **链接：** [查看原文]({tweet['url']})
                                     """)
@@ -535,123 +537,48 @@ with tabs[0]:
                                     **作者：** {tweet['author']} (@{tweet['handle']})  
                                     **日期：** {tweet['date']}  
                                     **原文：** {tweet['text']}  
-                                    **中文翻译：** {tweet.get('translation', '翻译不可用')}  
+                                    **中文翻译：** {tweet['translation']}  
                                     **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
                                     **链接：** [查看原文]({tweet['url']})
                                     """)
                     
-                    # Then display individual analyses
+                    # Then display individual analyses - MODIFIED to display tweet listings alongside analysis
                     st.subheader("🧠 个人推文分析")
                     for analysis_item in all_analyses:
                         handle = analysis_item["handle"]
                         author_name = analysis_item.get("author_name", handle)
                         analysis = analysis_item["analysis"]
                         
-                        with st.expander(f"{author_name} 分析"):
+                        # Get tweets for this handle
+                        handle_tweets = [t for t in all_tweets if t["handle"] == handle]
+                        
+                        # Create a container for each author
+                        author_container = st.container()
+                        with author_container:
+                            st.markdown(f"### {author_name} (@{handle})")
+                            
+                            # Display analysis in the container
                             st.text_area(f"{handle} 推文分析", analysis, height=250)
                             
-                            # Get tweets for this handle
-                            handle_tweets = [t for t in all_tweets if t["handle"] == handle]
-                            
-                            # Only display expander if there are tweets for this handle
+                            # Display tweets for this author - FIXED: separate container for tweets (not nested)
                             if handle_tweets:
-                                with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
-                                    for tweet in handle_tweets:
-                                        st.markdown(f"""
-                                        **日期：** {tweet['date']}  
-                                        **内容：** {tweet['text']}  
-                                        **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                                        **链接：** [查看原文]({tweet['url']})
-                                        ---
-                                        """)
+                                # Display raw tweets in a simple list format to avoid nesting expanders
+                                st.markdown(f"#### @{handle} 的原始推文 ({len(handle_tweets)} 条)")
+                                for tweet in handle_tweets:
+                                    st.markdown(f"""
+                                    **日期：** {tweet['date']}  
+                                    **内容：** {tweet['text']}  
+                                    **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                                    **链接：** [查看原文]({tweet['url']})
+                                    ---
+                                    """)
                             else:
                                 st.info(f"未找到 @{handle} 的推文数据")
             else:
                 st.warning("请选择至少一个X账号进行监控。")
-        
-        # Display previously fetched results if available
-        elif "twitter_results" in st.session_state and st.session_state["twitter_results"]:
-            st.write("### 最近一次分析结果")
-            
-            # Display the collective AI insights first if available
-            if "ai_insights" in st.session_state and st.session_state["ai_insights"]:
-                st.subheader("🔍 AI行业综合洞察")
-                st.text_area("AI行业洞察分析", st.session_state["ai_insights"], height=400)
-            
-            # Display top engaging tweets with translations if available
-            if "top_engaging_tweets" in st.session_state:
-                st.subheader("🔝 最具互动性的推文")
-                
-                top_tweets_tabs = st.tabs(["热门转发", "热门回复", "热门点赞"])
-                
-                # Display top retweets
-                with top_tweets_tabs[0]:
-                    st.write("### 最高转发量推文")
-                    for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_retweets"], 1):
-                        with st.expander(f"{i}. @{tweet['handle']} (转发: {tweet['retweets']})"):
-                            st.markdown(f"""
-                            **作者：** {tweet['author']} (@{tweet['handle']})  
-                            **日期：** {tweet['date']}  
-                            **原文：** {tweet['text']}  
-                            **中文翻译：** {tweet.get('translation', '翻译不可用')}  
-                            **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                            **链接：** [查看原文]({tweet['url']})
-                            """)
-                
-                # Display top replies
-                with top_tweets_tabs[1]:
-                    st.write("### 最高回复量推文")
-                    for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_replies"], 1):
-                        with st.expander(f"{i}. @{tweet['handle']} (回复: {tweet['replies']})"):
-                            st.markdown(f"""
-                            **作者：** {tweet['author']} (@{tweet['handle']})  
-                            **日期：** {tweet['date']}  
-                            **原文：** {tweet['text']}  
-                            **中文翻译：** {tweet.get('translation', '翻译不可用')}  
-                            **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                            **链接：** [查看原文]({tweet['url']})
-                            """)
-                
-                # Display top likes
-                with top_tweets_tabs[2]:
-                    st.write("### 最高点赞量推文")
-                    for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_likes"], 1):
-                        with st.expander(f"{i}. @{tweet['handle']} (点赞: {tweet['likes']})"):
-                            st.markdown(f"""
-                            **作者：** {tweet['author']} (@{tweet['handle']})  
-                            **日期：** {tweet['date']}  
-                            **原文：** {tweet['text']}  
-                            **中文翻译：** {tweet.get('translation', '翻译不可用')}  
-                            **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                            **链接：** [查看原文]({tweet['url']})
-                            """)
-            
-            # Then display individual analyses
-            st.subheader("🧠 个人推文分析")
-            for analysis_item in st.session_state["twitter_results"]["analyses"]:
-                handle = analysis_item["handle"]
-                author_name = analysis_item.get("author_name", handle)
-                analysis = analysis_item["analysis"]
-                
-                with st.expander(f"{author_name} 分析"):
-                    st.text_area(f"{handle} 推文分析", analysis, height=250)
-                    
-                    # Get tweets for this handle
-                    handle_tweets = [t for t in st.session_state["twitter_results"]["tweets"] if t["handle"] == handle]
-                    
-                    # Only display expander if there are tweets for this handle
-                    if handle_tweets:
-                        with st.expander(f"查看 @{handle} 的原始推文 ({len(handle_tweets)} 条)"):
-                            for tweet in handle_tweets:
-                                st.markdown(f"""
-                                **日期：** {tweet['date']}  
-                                **内容：** {tweet['text']}  
-                                **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                                **链接：** [查看原文]({tweet['url']})
-                                ---
-                                """)
-                    else:
-                        st.info(f"未找到 @{handle} 的推文数据")
+
+
+
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
     st.header("定时汇报")
