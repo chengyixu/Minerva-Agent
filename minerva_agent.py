@@ -197,6 +197,11 @@ def scrape_ai_influencer_tweets():
     # Initialize results storage
     all_tweets = []
     all_analyses = []
+    top_tweets_by_engagement = {
+        "top_by_likes": [],
+        "top_by_retweets": [],
+        "top_by_replies": []
+    }
     
     # Progress tracking for Streamlit
     progress = st.progress(0)
@@ -298,6 +303,21 @@ def scrape_ai_influencer_tweets():
     
     # After collecting all tweets, analyze them collectively for AI insights
     if all_tweets:
+        # Process top tweets by engagement
+        top_by_likes = sorted(all_tweets, key=lambda x: x.get('likes', 0), reverse=True)[:5]
+        top_by_retweets = sorted(all_tweets, key=lambda x: x.get('retweets', 0), reverse=True)[:5]
+        top_by_replies = sorted(all_tweets, key=lambda x: x.get('replies', 0), reverse=True)[:5]
+        
+        top_tweets_by_engagement = {
+            "top_by_likes": top_by_likes,
+            "top_by_retweets": top_by_retweets,
+            "top_by_replies": top_by_replies
+        }
+        
+        # Store in session state
+        st.session_state["top_tweets_by_engagement"] = top_tweets_by_engagement
+        
+        # Analyze for AI insights
         ai_insights = extract_ai_insights_with_qwen(all_tweets)
         st.session_state["ai_insights"] = ai_insights
     
@@ -360,15 +380,17 @@ def extract_ai_insights_with_qwen(tweets_data):
     messages = [
         {'role': 'system', 'content': 'You are an expert AI researcher and analyst. Your task is to identify emerging trends, groundbreaking research, and industry shifts in artificial intelligence by analyzing tweets from leading AI professionals.'},
         {'role': 'user', 'content': f'''
-        Analyze the following collection of tweets from leading AI professionals and provide a comprehensive analysis of his/her AI insights:
+        Analyze the following collection of tweets from leading AI professionals and provide a comprehensive analysis of AI insights:
 
-        1. 最新AI技术趋势 (Latest AI Technology Trends): Identify emerging technologies or approaches that appear to be gaining momentum in the AI community.
+        1. 最新AI技术趋势 (Latest AI Technology Trends): Identify 5 emerging technologies or approaches that appear to be gaining momentum in the AI community.
         
-        2. 研究方向前沿 (Research Frontiers): Extract research areas that seem to be at the cutting edge based on researcher discussions.
+        2. 研究方向前沿 (Research Frontiers): Extract 3-5 research areas that seem to be at the cutting edge based on researcher discussions.
         
         3. 行业发展动态 (Industry Developments): Summarize key business or industry shifts that are evident from these tweets.
-                
-        4. 未来AI展望 (Future AI Outlook): Based on these experts' tweets, provide insights on where AI might be heading in the near future.
+        
+        4. AI伦理与社会影响 (AI Ethics & Social Impact): Highlight any discussions related to AI ethics, governance, or societal implications.
+        
+        5. 未来AI展望 (Future AI Outlook): Based on these experts' tweets, provide insights on where AI might be heading in the near future.
         
         Current date: {datetime.now().strftime('%Y-%m-%d')}.
         
@@ -482,20 +504,20 @@ with tabs[0]:
     
     # X/Twitter monitoring tab (NEW)
     with monitoring_tabs[1]:
-        st.write("监控AI领域专家X动态")
+        st.write("监控AI领域专家Twitter动态")
         
         # Display information about the scraper
-        st.info("这个功能会抓取AI领域专家的X动态，并用Qwen进行分析，提取insights。")
+        st.info("这个功能会抓取AI领域专家的Twitter动态，并通过同样的Qwen模型进行分析，提取关键见解。")
         
         # Options for scraping
         top_influencers = ["sama", "ylecun", "AndrewYNg", "fchollet", "karpathy", "demishassabis", "drfeifei", "geoffreyhinton", "goodside", "EMostaque"]
-        selected_handles = st.multiselect("选择要监控的X账号,正在开发无需设置的总结功能):", options=top_influencers, default=top_influencers[:200])
+        selected_handles = st.multiselect("选择要监控的Twitter账号,正在开发无需设置的总结功能):", options=top_influencers, default=top_influencers[:3])
         
         # Limit the number of selected handles
         max_handles = min(len(selected_handles) if selected_handles else 3, 10)
         
         # Scrape button
-        if st.button("开始抓取X数据"):
+        if st.button("开始抓取X/Twitter数据"):
             if selected_handles:
                 st.session_state["twitter_handles"] = selected_handles[:max_handles]
                 st.write(f"### 正在抓取 {len(st.session_state['twitter_handles'])} 个AI专家的Twitter数据...")
@@ -506,7 +528,8 @@ with tabs[0]:
                 # Store in session state for persistence
                 st.session_state["twitter_results"] = {
                     "tweets": all_tweets,
-                    "analyses": all_analyses
+                    "analyses": all_analyses,
+                    "top_tweets_by_engagement": top_tweets_by_engagement
                 }
                 
                 # Display analyses
@@ -515,6 +538,46 @@ with tabs[0]:
                     if st.session_state["ai_insights"]:
                         st.subheader("🔍 AI行业综合洞察")
                         st.text_area("AI行业洞察分析", st.session_state["ai_insights"], height=400)
+                    
+                    # Display top engaging tweets
+                    st.subheader("🔥 热门推文")
+                    engagement_tabs = st.tabs(["点赞最多", "转发最多", "评论最多"])
+                    
+                    # Top tweets by likes
+                    with engagement_tabs[0]:
+                        for i, tweet in enumerate(top_tweets_by_engagement["top_by_likes"]):
+                            st.markdown(f"""
+                            ### #{i+1}: {tweet['author']} (@{tweet['handle']})
+                            **内容:** {tweet['text']}
+                            **点赞:** {tweet['likes']} | **转发:** {tweet['retweets']} | **评论:** {tweet['replies']}
+                            **日期:** {tweet['date']}
+                            **链接:** [查看原文]({tweet['url']})
+                            ---
+                            """)
+                    
+                    # Top tweets by retweets
+                    with engagement_tabs[1]:
+                        for i, tweet in enumerate(top_tweets_by_engagement["top_by_retweets"]):
+                            st.markdown(f"""
+                            ### #{i+1}: {tweet['author']} (@{tweet['handle']})
+                            **内容:** {tweet['text']}
+                            **转发:** {tweet['retweets']} | **点赞:** {tweet['likes']} | **评论:** {tweet['replies']}
+                            **日期:** {tweet['date']}
+                            **链接:** [查看原文]({tweet['url']})
+                            ---
+                            """)
+                    
+                    # Top tweets by replies
+                    with engagement_tabs[2]:
+                        for i, tweet in enumerate(top_tweets_by_engagement["top_by_replies"]):
+                            st.markdown(f"""
+                            ### #{i+1}: {tweet['author']} (@{tweet['handle']})
+                            **内容:** {tweet['text']}
+                            **评论:** {tweet['replies']} | **点赞:** {tweet['likes']} | **转发:** {tweet['retweets']}
+                            **日期:** {tweet['date']}
+                            **链接:** [查看原文]({tweet['url']})
+                            ---
+                            """)
                     
                     # Then display individual analyses
                     st.subheader("🧠 个人推文分析")
@@ -539,7 +602,7 @@ with tabs[0]:
                                     ---
                                     """)
             else:
-                st.warning("请选择至少一个X账号进行监控。")
+                st.warning("请选择至少一个Twitter账号进行监控。")
         
         # Display previously fetched results if available
         elif "twitter_results" in st.session_state and st.session_state["twitter_results"]:
@@ -549,6 +612,47 @@ with tabs[0]:
             if "ai_insights" in st.session_state and st.session_state["ai_insights"]:
                 st.subheader("🔍 AI行业综合洞察")
                 st.text_area("AI行业洞察分析", st.session_state["ai_insights"], height=400)
+            
+            # Display top engaging tweets if available
+            if "top_tweets_by_engagement" in st.session_state["twitter_results"]:
+                st.subheader("🔥 热门推文")
+                engagement_tabs = st.tabs(["点赞最多", "转发最多", "评论最多"])
+                
+                # Top tweets by likes
+                with engagement_tabs[0]:
+                    for i, tweet in enumerate(st.session_state["twitter_results"]["top_tweets_by_engagement"]["top_by_likes"]):
+                        st.markdown(f"""
+                        ### #{i+1}: {tweet['author']} (@{tweet['handle']})
+                        **内容:** {tweet['text']}
+                        **点赞:** {tweet['likes']} | **转发:** {tweet['retweets']} | **评论:** {tweet['replies']}
+                        **日期:** {tweet['date']}
+                        **链接:** [查看原文]({tweet['url']})
+                        ---
+                        """)
+                
+                # Top tweets by retweets
+                with engagement_tabs[1]:
+                    for i, tweet in enumerate(st.session_state["twitter_results"]["top_tweets_by_engagement"]["top_by_retweets"]):
+                        st.markdown(f"""
+                        ### #{i+1}: {tweet['author']} (@{tweet['handle']})
+                        **内容:** {tweet['text']}
+                        **转发:** {tweet['retweets']} | **点赞:** {tweet['likes']} | **评论:** {tweet['replies']}
+                        **日期:** {tweet['date']}
+                        **链接:** [查看原文]({tweet['url']})
+                        ---
+                        """)
+                
+                # Top tweets by replies
+                with engagement_tabs[2]:
+                    for i, tweet in enumerate(st.session_state["twitter_results"]["top_tweets_by_engagement"]["top_by_replies"]):
+                        st.markdown(f"""
+                        ### #{i+1}: {tweet['author']} (@{tweet['handle']})
+                        **内容:** {tweet['text']}
+                        **评论:** {tweet['replies']} | **点赞:** {tweet['likes']} | **转发:** {tweet['retweets']}
+                        **日期:** {tweet['date']}
+                        **链接:** [查看原文]({tweet['url']})
+                        ---
+                        """)
             
             # Then display individual analyses
             st.subheader("🧠 个人推文分析")

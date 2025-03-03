@@ -8,8 +8,8 @@
 	1. 暂定Streamlit，后续根据实现难度可调整为gradio等
 
 **功能实现：**
-1. 监控推流的各大信息网站的热点
-2. 定时整合汇报各大信息网站的重要内容
+1. 监控各大信息网站的热点
+2. 定时汇报各大信息网站的重要内容，展示点赞/转发/评论最高的10条X
 3. 作为本地的事实知识库，可以随时添加各种类型的信息源，并支持可验证的cross check
 	1. 对话
 	2. 验证
@@ -27,7 +27,6 @@
 
 1.
 https://www.jasonwei.net/blog
-
 https://muennighoff.github.io/
 https://thomwolf.io/
 https://dennyzhou.github.io/
@@ -64,3 +63,6 @@ Research Scientist, Google DeepMind
 
 
 
+
+
+定时汇报
