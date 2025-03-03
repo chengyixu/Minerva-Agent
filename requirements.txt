@@ -5,3 +5,4 @@ streamlit
 dashscope
 firecrawl
 apify_client
+csv
