@@ -73,18 +73,18 @@ def chat_with_local_facts(user_message):
     local_facts = st.session_state.get("local_facts", [])
     local_files = st.session_state.get("local_files", [])
     
-    # Build a context string from each stored source ¨C here we simply take the first 1000 characters per source
+    # Build a context string from each stored source ï¿½C here we simply take the first 1000 characters per source
     context_text = ""
     for source in local_facts:
-        context_text += f"¡¾ÍøÕ¾¡¿ {source['url']}\n{source['content'][:1000]}\n"
+        context_text += f"ï¿½ï¿½ï¿½ï¿½Õ¾ï¿½ï¿½ {source['url']}\n{source['content'][:1000]}\n"
     for file_info in local_files:
-        context_text += f"¡¾ÎÄ¼ş¡¿ {file_info['file_name']}\n{file_info['content'][:1000]}\n"
+        context_text += f"ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ {file_info['file_name']}\n{file_info['content'][:1000]}\n"
     
     if not context_text:
-        context_text = "µ±Ç°Ã»ÓĞ±¾µØĞÅÏ¢¡£"
+        context_text = "ï¿½ï¿½Ç°Ã»ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½"
         
     messages = [
-        {"role": "system", "content": f"ÄãÊÇÒ»¸ö»ùÓÚ±¾µØÊÂÊµÖªÊ¶¿âµÄÖÇÄÜÖúÊÖ¡£ÒÔÏÂÊÇ²¿·ÖÎÄµµÄÚÈİÓÃÓÚ¸¨Öú»Ø´ğÎÊÌâ£º\n{context_text}\nÇë»ùÓÚÕâĞ©ÄÚÈİ»Ø´ğÓÃ»§ÎÊÌâ¡£"},
+        {"role": "system", "content": f"ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ÊµÖªÊ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç²ï¿½ï¿½ï¿½ï¿½Äµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ï¿½ï¿½ï¿½Ø´ï¿½ï¿½ï¿½ï¿½â£º\n{context_text}\nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ©ï¿½ï¿½ï¿½İ»Ø´ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½â¡£"},
         {"role": "user", "content": user_message},
     ]
     response = dashscope.Generation.call(
@@ -107,7 +107,7 @@ def chat_with_deepseek(user_message):
         {"role": "user", "content": user_message},
     ]
     completion = client.chat.completions.create(
-        model="deepseek-r1",  # Ê¹ÓÃ deepseek Ä£ĞÍ
+        model="deepseek-r1",  # Ê¹ï¿½ï¿½ deepseek Ä£ï¿½ï¿½
         messages=messages
     )
     return completion.choices[0].message.content
@@ -116,48 +116,48 @@ def chat_with_deepseek(user_message):
 st.title("Minerva Agent")
 
 # Create four tabs for different functionalities
-tabs = st.tabs(["ÈÈµã¼à¿Ø", "¶¨Ê±»ã±¨", "ÊÂÊµÖªÊ¶¿â (RAG)", "Ö±½ÓÁÄÌì"])
+tabs = st.tabs(["ï¿½Èµï¿½ï¿½ï¿½", "ï¿½ï¿½Ê±ï¿½ã±¨", "ï¿½ï¿½ÊµÖªÊ¶ï¿½ï¿½ (RAG)", "Ö±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"])
 
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
-    st.header("ÈÈµã¼à¿Ø")
-    st.write("¼à¿ØÍÆÁ÷µÄ¸÷´óĞÅÏ¢ÍøÕ¾µÄÈÈµã")
+    st.header("ï¿½Èµï¿½ï¿½ï¿½")
+    st.write("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½Èµï¿½")
     default_websites = ["lilianweng.github.io"]
-    input_websites = st.text_area("ÍøÕ¾ÓòÃû (¶ººÅ·Ö¸ô):", value=', '.join(default_websites), height=100)
+    input_websites = st.text_area("ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½Å·Ö¸ï¿½):", value=', '.join(default_websites), height=100)
     websites = [site.strip() for site in input_websites.split(',')]
     
-    if st.button("¿ªÊ¼¼à¿Ø"):
+    if st.button("ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½"):
         for site in websites:
-            st.write(f"### ÕıÔÚÀ­È¡ {site} µÄÊı¾İ...")
+            st.write(f"### ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ {site} ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½...")
             raw_html = get_raw_html(site)
             if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
                 st.error(raw_html)
             else:
-                st.write("Êı¾İÀ­È¡³É¹¦£¬ÕıÔÚ·ÖÎöÈÈµãÄÚÈİ...")
+                st.write("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ï¿½ï¿½Èµï¿½ï¿½ï¿½ï¿½ï¿½...")
                 analysis = analyze_with_qwen(site, raw_html)
-                st.text_area(f"{site} ÈÈµã·ÖÎö", analysis, height=300)
+                st.text_area(f"{site} ï¿½Èµï¿½ï¿½ï¿½ï¿½", analysis, height=300)
             st.markdown("---")
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
-    st.header("¶¨Ê±»ã±¨")
-    st.write("¶¨Ê±ÕûºÏ»ã±¨¸÷´óĞÅÏ¢ÍøÕ¾µÄÖØÒªÄÚÈİ")
-    st.info("¿ª·¢ÖĞ")
-    scheduled_time = st.time_input("Ñ¡Ôñ»ã±¨Ê±¼ä£¨ÀıÈçÃ¿ÈÕ¶¨Ê±£©", datetime.time(hour=12, minute=0))
-    st.write(f"µ±Ç°ÉèÖÃµÄ»ã±¨Ê±¼äÎª£º{scheduled_time}")
+    st.header("ï¿½ï¿½Ê±ï¿½ã±¨")
+    st.write("ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ï»ã±¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½")
+    st.info("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")
+    scheduled_time = st.time_input("Ñ¡ï¿½ï¿½ã±¨Ê±ï¿½ä£¨ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½Õ¶ï¿½Ê±ï¿½ï¿½", datetime.time(hour=12, minute=0))
+    st.write(f"ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ÃµÄ»ã±¨Ê±ï¿½ï¿½Îªï¿½ï¿½{scheduled_time}")
 
 # ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[2]:
-    st.header("ÊÂÊµÖªÊ¶¿â")
-    st.write("ÉÏ´«ÎÄ¼ş»òÌí¼ÓÍøÕ¾£¬ÏµÍ³»áÌáÈ¡ÄÚÈİ£¬²¢ÔÚÁÄÌìÊ±»ùÓÚÕâĞ©ĞÅÏ¢½øĞĞ»Ø´ğ¡£")
+    st.header("ï¿½ï¿½ÊµÖªÊ¶ï¿½ï¿½")
+    st.write("ï¿½Ï´ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ¾ï¿½ï¿½ÏµÍ³ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½İ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ©ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½Ğ»Ø´ï¿½")
     
-    # Form to add a new website source ¨C it immediately fetches and stores content.
+    # Form to add a new website source ï¿½C it immediately fetches and stores content.
     with st.form("add_source_form"):
-        new_source = st.text_input("ÊäÈëĞÂĞÅÏ¢Ô´ÍøÖ·:")
-        source_desc = st.text_area("ĞÅÏ¢Ô´ÃèÊö:")
-        submitted = st.form_submit_button("Ìí¼ÓĞÅÏ¢Ô´")
+        new_source = st.text_input("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ô´ï¿½ï¿½Ö·:")
+        source_desc = st.text_area("ï¿½ï¿½Ï¢Ô´ï¿½ï¿½ï¿½ï¿½:")
+        submitted = st.form_submit_button("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ô´")
         if submitted and new_source:
-            st.info(f"ÕıÔÚ´Ó {new_source} ×¥È¡ÄÚÈİ...")
+            st.info(f"ï¿½ï¿½ï¿½Ú´ï¿½ {new_source} ×¥È¡ï¿½ï¿½ï¿½ï¿½...")
             # Remove potential protocol parts for get_raw_html function
             domain = new_source.replace("https://", "").replace("http://", "").strip()
             raw_content = get_raw_html(domain)
@@ -167,18 +167,18 @@ with tabs[2]:
                 "desc": source_desc,
                 "content": raw_content
             })
-            st.success(f"ĞÅÏ¢Ô´ {new_source} ÒÑÌí¼Ó£¬²¢ÌáÈ¡ÄÚÈİ£¡")
+            st.success(f"ï¿½ï¿½Ï¢Ô´ {new_source} ï¿½ï¿½ï¿½ï¿½ï¿½Ó£ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½İ£ï¿½")
     
     st.markdown("---")
-    # Form to upload files ¨C the app processes and extracts text content.
+    # Form to upload files ï¿½C the app processes and extracts text content.
     with st.form("upload_file_form", clear_on_submit=True):
-        uploaded_files = st.file_uploader("Ñ¡ÔñÒªÉÏ´«µÄÎÄ¼ş£¨Ö§³ÖËùÓĞ¸ñÊ½£©", accept_multiple_files=True)
-        file_submitted = st.form_submit_button("ÉÏ´«ÎÄ¼ş")
+        uploaded_files = st.file_uploader("Ñ¡ï¿½ï¿½Òªï¿½Ï´ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ö§ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¸ï¿½Ê½ï¿½ï¿½", accept_multiple_files=True)
+        file_submitted = st.form_submit_button("ï¿½Ï´ï¿½ï¿½Ä¼ï¿½")
         if file_submitted and uploaded_files:
             for file in uploaded_files:
                 try:
                     file_bytes = file.getvalue()
-                    # ³¢ÊÔ½âÂëÎª UTF-8 ÎÄ±¾
+                    # ï¿½ï¿½ï¿½Ô½ï¿½ï¿½ï¿½Îª UTF-8 ï¿½Ä±ï¿½
                     try:
                         file_text = file_bytes.decode("utf-8")
                     except Exception:
@@ -188,32 +188,32 @@ with tabs[2]:
                         "file_name": file.name,
                         "content": file_text
                     })
-                    st.success(f"ÎÄ¼ş {file.name} ÒÑÉÏ´«²¢´¦Àí£¡")
+                    st.success(f"ï¿½Ä¼ï¿½ {file.name} ï¿½ï¿½ï¿½Ï´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")
                 except Exception as e:
-                    st.error(f"´¦ÀíÎÄ¼ş {file.name} Ê±³ö´í£º{e}")
+                    st.error(f"ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ {file.name} Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½{e}")
     
-    st.markdown("### µ±Ç°±¾µØĞÅÏ¢")
+    st.markdown("### ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢")
     if st.session_state["local_facts"]:
-        st.write("#### ÍøÕ¾ĞÅÏ¢")
+        st.write("#### ï¿½ï¿½Õ¾ï¿½ï¿½Ï¢")
         for idx, fact in enumerate(st.session_state["local_facts"], start=1):
-            st.write(f"**{idx}.** {fact['url']} ¡ª {fact['desc']}")
+            st.write(f"**{idx}.** {fact['url']} ï¿½ï¿½ {fact['desc']}")
     else:
-        st.info("»¹Ã»ÓĞÌí¼ÓÈÎºÎÍøÕ¾ĞÅÏ¢¡£")
+        st.info("ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îºï¿½ï¿½ï¿½Õ¾ï¿½ï¿½Ï¢ï¿½ï¿½")
     
     if st.session_state["local_files"]:
-        st.write("#### ÉÏ´«µÄÎÄ¼ş")
+        st.write("#### ï¿½Ï´ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½")
         for idx, file_info in enumerate(st.session_state["local_files"], start=1):
             st.write(f"**{idx}.** {file_info['file_name']}")
     else:
-        st.info("»¹Ã»ÓĞÉÏ´«ÈÎºÎÎÄ¼ş¡£")
+        st.info("ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Ï´ï¿½ï¿½Îºï¿½ï¿½Ä¼ï¿½ï¿½ï¿½")
 
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
-    st.header("Ö±½ÓÁÄÌì")
-    st.write("»ùÓÚ Qwen¡¢´óÄ£ĞÍ¡¢±¾µØĞÅÏ¢¿âÒÔ¼° Deepseek Ä£ĞÍ£¬Äú¿ÉÒÔÖ±½ÓÓë AI ½øĞĞ¶Ô»°¡£")
+    st.header("Ö±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")
+    st.write("ï¿½ï¿½ï¿½ï¿½ Qwenï¿½ï¿½ï¿½ï¿½Ä£ï¿½Í¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½Ô¼ï¿½ Deepseek Ä£ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ AI ï¿½ï¿½ï¿½Ğ¶Ô»ï¿½ï¿½ï¿½")
     
-    # Ñ¡ÔñÁÄÌìÄ£Ê½£º°üº¬ Qwen¡¢±¾µØÖªÊ¶¿â (RAG) ºÍ Deepseek ÁÄÌìÑ¡Ïî
-    chat_mode = st.radio("Ñ¡ÔñÁÄÌìÄ£Ê½", ("QwenÁÄÌì", "±¾µØÖªÊ¶ÁÄÌì(Qwen)", "DeepseekÁÄÌì"))
+    # Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Qwenï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÖªÊ¶ï¿½ï¿½ (RAG) ï¿½ï¿½ Deepseek ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+    chat_mode = st.radio("Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½", ("Qwenï¿½ï¿½ï¿½ï¿½", "ï¿½ï¿½ï¿½ï¿½ÖªÊ¶ï¿½ï¿½ï¿½ï¿½(Qwen)", "Deepseekï¿½ï¿½ï¿½ï¿½"))
     
     # Maintain conversation history in session state
     if "chat_history" not in st.session_state:
@@ -221,21 +221,21 @@ with tabs[3]:
     
     # Chat input form (clears on submit)
     with st.form("chat_form", clear_on_submit=True):
-        chat_input = st.text_input("ÊäÈëÄúµÄÏûÏ¢£º")
-        submitted = st.form_submit_button("·¢ËÍ")
+        chat_input = st.text_input("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½")
+        submitted = st.form_submit_button("ï¿½ï¿½ï¿½ï¿½")
         if submitted and chat_input:
             st.session_state["chat_history"].append({"role": "user", "content": chat_input})
-            if chat_mode == "QwenÁÄÌì":
+            if chat_mode == "Qwenï¿½ï¿½ï¿½ï¿½":
                 reply = chat_with_qwen(chat_input)
-            elif chat_mode == "±¾µØÖªÊ¶ÁÄÌì(Qwen)":
+            elif chat_mode == "ï¿½ï¿½ï¿½ï¿½ÖªÊ¶ï¿½ï¿½ï¿½ï¿½(Qwen)":
                 reply = chat_with_local_facts(chat_input)
-            elif chat_mode == "DeepseekÁÄÌì":
+            elif chat_mode == "Deepseekï¿½ï¿½ï¿½ï¿½":
                 reply = chat_with_deepseek(chat_input)
             st.session_state["chat_history"].append({"role": "assistant", "content": reply})
     
-    st.markdown("### ÁÄÌì¼ÇÂ¼")
+    st.markdown("### ï¿½ï¿½ï¿½ï¿½ï¿½Â¼")
     for message in st.session_state["chat_history"]:
         if message["role"] == "user":
-            st.markdown(f"**Äú:** {message['content']}")
+            st.markdown(f"**ï¿½ï¿½:** {message['content']}")
         else:
             st.markdown(f"**AI:** {message['content']}")
