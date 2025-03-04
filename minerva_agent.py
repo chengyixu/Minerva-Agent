@@ -411,8 +411,8 @@ def analyze_tweets_with_qwen(handle, tweets_data):
     messages = [
         {'role': 'system', 'content': 'You are a professional AI researcher. Analyze the tweets and extract key insights and topics.'},
         {'role': 'user', 'content': f'''
-        Analyze the following tweets from AI influencer @{handle} and provide:
-        1. 5 key topics or trends in Chinese
+        Analyze the following tweets from AI influencer @{handle} and provide in Chinese:
+        1. key topics or trends in Chinese
         2. Brief summary of main points in Chinese
         3. Any significant announcements or news in Chinese
         
@@ -473,7 +473,7 @@ def extract_ai_insights_with_deepseek(tweets_data):
         Tweets:
         {tweet_content}
         
-        Provide your analysis in Chinese, with clear section headers and bullet points where appropriate.
+        Provide your analysis in Chinese, with clear section headers and bullet points where appropriate, do not use Markdown format.
         '''}
     ]
     
@@ -727,7 +727,7 @@ with tabs[0]:
                                         """)
                         
                         # Then display individual analyses
-                        st.subheader("🧠 个人推文分析")
+                        st.subheader("个人推文分析")
                         for analysis_item in all_analyses:
                             handle = analysis_item["handle"]
                             author_name = analysis_item.get("author_name", handle)
@@ -805,15 +805,23 @@ with tabs[0]:
                         st.markdown("#### 最高转发量推文")
                         for i, tweet in enumerate(top_engaging_tweets["top_retweets"], 1):
                             st.markdown(f"""
-                            **{i}. @{tweet['handle']} (转发: {tweet['retweets']})** - {tweet['text'][:100]}...
+                            **{i}. @{tweet['handle']} (转发: {tweet['retweets']})** - {tweet['text']}
                             """)
                     
                     if "top_likes" in top_engaging_tweets:
                         st.markdown("#### 最高点赞量推文")
                         for i, tweet in enumerate(top_engaging_tweets["top_likes"], 1):
                             st.markdown(f"""
-                            **{i}. @{tweet['handle']} (点赞: {tweet['likes']})** - {tweet['text'][:100]}...
+                            **{i}. @{tweet['handle']} (点赞: {tweet['likes']})** - {tweet['text']}
                             """)
+
+                    if "top_replies" in top_engaging_tweets:
+                        st.markdown("#### 最高回复量推文")
+                        for i, tweet in enumerate(top_engaging_tweets["top_replies"], 1):
+                            st.markdown(f"""
+                            **{i}. @{tweet['handle']} (回复: {tweet['replies']})** - {tweet['text']}
+                            """)
+
             
             # Display individual analyses if available
             if twitter_data.get("analyses"):
@@ -822,7 +830,7 @@ with tabs[0]:
                         handle = analysis_item["handle"]
                         author_name = analysis_item.get("author_name", handle)
                         st.markdown(f"**{author_name} (@{handle})**")
-                        st.markdown(analysis_item["analysis"][:300] + "...")
+                        st.markdown(analysis_item["analysis"])
                         st.markdown("---")
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
