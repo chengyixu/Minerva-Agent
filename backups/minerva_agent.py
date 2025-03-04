@@ -4,152 +4,25 @@ import datetime as dt
 import dashscope
 from firecrawl import FirecrawlApp
 import os
-import json
 from openai import OpenAI 
 from apify_client import ApifyClient  # Added for X/Twitter scraping
+import json
 import time
 from datetime import datetime, timedelta
 import csv
-import pickle
+from datetime import datetime, timedelta
 
-# Create data directory if it doesn't exist
-DATA_DIR = "data"
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# File paths for persistent data storage
-WEBSITE_DATA_PATH = os.path.join(DATA_DIR, "website_data.json")
-TWITTER_DATA_PATH = os.path.join(DATA_DIR, "twitter_data.json")
-TWITTER_INSIGHTS_PATH = os.path.join(DATA_DIR, "twitter_insights.json")
-RAG_DATA_PATH = os.path.join(DATA_DIR, "rag_data.pkl")
-
-# Helper functions for data persistence
-def save_website_data(domain, analysis):
-    """Save website analysis data to a JSON file"""
-    # Load existing data if available
-    if os.path.exists(WEBSITE_DATA_PATH):
-        with open(WEBSITE_DATA_PATH, 'r', encoding='utf-8') as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                data = {}
-    else:
-        data = {}
-    
-    # Add timestamp to track when the data was scraped
-    data[domain] = {
-        "analysis": analysis,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    
-    # Save updated data
-    with open(WEBSITE_DATA_PATH, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-    
-    return data
-
-def load_website_data():
-    """Load website analysis data from JSON file"""
-    if os.path.exists(WEBSITE_DATA_PATH):
-        with open(WEBSITE_DATA_PATH, 'r', encoding='utf-8') as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                return {}
-    return {}
-
-def save_twitter_data(all_tweets, all_analyses):
-    """Save Twitter data to JSON files"""
-    # Save tweets and analyses
-    twitter_data = {
-        "tweets": all_tweets,
-        "analyses": all_analyses,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    
-    with open(TWITTER_DATA_PATH, 'w', encoding='utf-8') as f:
-        json.dump(twitter_data, f, ensure_ascii=False, indent=4)
-    
-    return twitter_data
-
-def save_twitter_insights(ai_insights, top_engaging_tweets):
-    """Save Twitter insights to a JSON file"""
-    insights_data = {
-        "ai_insights": ai_insights,
-        "top_engaging_tweets": top_engaging_tweets,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    
-    with open(TWITTER_INSIGHTS_PATH, 'w', encoding='utf-8') as f:
-        json.dump(insights_data, f, ensure_ascii=False, indent=4)
-    
-    return insights_data
-
-def load_twitter_data():
-    """Load Twitter data from JSON file"""
-    if os.path.exists(TWITTER_DATA_PATH):
-        with open(TWITTER_DATA_PATH, 'r', encoding='utf-8') as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                return {"tweets": [], "analyses": [], "timestamp": None}
-    return {"tweets": [], "analyses": [], "timestamp": None}
-
-def load_twitter_insights():
-    """Load Twitter insights from JSON file"""
-    if os.path.exists(TWITTER_INSIGHTS_PATH):
-        with open(TWITTER_INSIGHTS_PATH, 'r', encoding='utf-8') as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                return {"ai_insights": None, "top_engaging_tweets": None, "timestamp": None}
-    return {"ai_insights": None, "top_engaging_tweets": None, "timestamp": None}
-
-def save_rag_data(local_facts, local_files):
-    """Save RAG data using pickle for better handling of complex data structures"""
-    rag_data = {
-        "local_facts": local_facts,
-        "local_files": local_files,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    
-    with open(RAG_DATA_PATH, 'wb') as f:
-        pickle.dump(rag_data, f)
-    
-    return rag_data
-
-def load_rag_data():
-    """Load RAG data from pickle file"""
-    if os.path.exists(RAG_DATA_PATH):
-        with open(RAG_DATA_PATH, 'rb') as f:
-            try:
-                return pickle.load(f)
-            except (pickle.PickleError, EOFError):
-                return {"local_facts": [], "local_files": [], "timestamp": None}
-    return {"local_facts": [], "local_files": [], "timestamp": None}
-
-# Initialize session state variables with persistent data if available
+# Initialize session state variables
 if "local_facts" not in st.session_state:
-    rag_data = load_rag_data()
-    st.session_state["local_facts"] = rag_data["local_facts"]
+    st.session_state["local_facts"] = []
 if "local_files" not in st.session_state:
-    if "local_facts" in st.session_state:  # Already loaded above
-        rag_data = load_rag_data()
-        st.session_state["local_files"] = rag_data["local_files"]
-    else:
-        st.session_state["local_files"] = []
+    st.session_state["local_files"] = []
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
-if "twitter_results" not in st.session_state:
-    twitter_data = load_twitter_data()
-    st.session_state["twitter_results"] = {
-        "tweets": twitter_data["tweets"],
-        "analyses": twitter_data["analyses"]
-    }
-if "ai_insights" not in st.session_state:
-    insights_data = load_twitter_insights()
-    st.session_state["ai_insights"] = insights_data["ai_insights"]
-if "top_engaging_tweets" not in st.session_state and "top_engaging_tweets" in load_twitter_insights():
-    st.session_state["top_engaging_tweets"] = load_twitter_insights()["top_engaging_tweets"]
+if "twitter_results" not in st.session_state:  # New state for Twitter results
+    st.session_state["twitter_results"] = []
+if "ai_insights" not in st.session_state:  # New state for AI insights
+    st.session_state["ai_insights"] = None
 
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
@@ -245,16 +118,11 @@ def get_top_engaging_tweets(all_tweets):
     translated_replies = batch_translate_tweets(top_replies)
     translated_likes = batch_translate_tweets(top_likes)
     
-    top_tweets = {
+    return {
         'top_retweets': translated_retweets,
         'top_replies': translated_replies,
         'top_likes': translated_likes
     }
-    
-    # Save the top tweets data for persistence
-    save_twitter_insights(st.session_state.get("ai_insights"), top_tweets)
-    
-    return top_tweets
 
 # Function to scrape AI influencer tweets from X (Twitter)
 def scrape_ai_influencer_tweets():
@@ -266,6 +134,9 @@ def scrape_ai_influencer_tweets():
         "sama",               # Sam Altman
         "ylecun",             # Yann LeCun
         "AndrewYNg",          # Andrew Ng
+        "fchollet",           # François Chollet
+        "_KarenHao",          # Karen Hao
+        "karpathy"
     ]
     
     # Calculate date range for the last 2 days
@@ -389,10 +260,6 @@ def scrape_ai_influencer_tweets():
         st.info("正在获取和翻译最具互动性的推文...")
         top_tweets = get_top_engaging_tweets(all_tweets)
         st.session_state["top_engaging_tweets"] = top_tweets
-        
-        # Save all Twitter data for persistence
-        save_twitter_data(all_tweets, all_analyses)
-        save_twitter_insights(ai_insights, top_tweets)
     
     # Final summary
     progress.empty()
@@ -482,12 +349,7 @@ def extract_ai_insights_with_deepseek(tweets_data):
         messages=messages
     )
     
-    ai_insights = completion.choices[0].message.content
-    
-    # Save AI insights for persistence
-    save_twitter_insights(ai_insights, st.session_state.get("top_engaging_tweets"))
-    
-    return ai_insights
+    return completion.choices[0].message.content
 
 # Function for direct chat using Qwen (standard mode)
 def chat_with_qwen(user_message):
@@ -504,7 +366,7 @@ def chat_with_qwen(user_message):
     )
     return response['output']['choices'][0]['message']['content']
 
-# Function for chat using local factual knowledge (RAG)
+# UPDATED: Function for chat using local factual knowledge (RAG)
 def chat_with_local_facts(user_message):
     local_facts = st.session_state.get("local_facts", [])
     local_files = st.session_state.get("local_files", [])
@@ -564,12 +426,6 @@ with tabs[0]:
     # Website monitoring tab
     with monitoring_tabs[0]:
         st.write("监控推流的各大信息网站的热点")
-        
-        # Load existing website data
-        website_data = load_website_data()
-        if website_data:
-            st.info(f"已加载 {len(website_data)} 个网站的历史数据。上次更新时间: {list(website_data.values())[0].get('timestamp', '未知')}")
-        
         default_websites = ["lilianweng.github.io",
         "www.jasonwei.net/blog",
         "muennighoff.github.io/",
@@ -578,67 +434,29 @@ with tabs[0]:
         "aiera.com.cn/news/",
         "www.jiqizhixin.com/",
         "foresightnews.pro/column/detail/101",
+        
         ]
         input_websites = st.text_area("网站域名 (逗号分隔),从www开始, 例如（www.jasonwei.net/blog）:", value=', '.join(default_websites), height=100)
         websites = [site.strip() for site in input_websites.split(',')]
         
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("开始网站监控", key="scrape_websites"):
-                for site in websites:
-                    st.write(f"### 正在拉取 {site} 的数据...")
-                    raw_html = get_raw_html(site)
-                    if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
-                        st.error(raw_html)
-                    else:
-                        st.write("数据拉取成功，正在分析热点内容...")
-                        analysis = analyze_with_qwen(site, raw_html)
-                        # Save the analysis for this website
-                        save_website_data(site, analysis)
-                        st.text_area(f"{site} 热点分析", analysis, height=300)
-                    st.markdown("---")
-        
-        with col2:
-            if st.button("重新抓取", key="rescrape_websites"):
-                st.warning("正在重新抓取所有网站数据...")
-                # Clear existing data
-                if os.path.exists(WEBSITE_DATA_PATH):
-                    os.remove(WEBSITE_DATA_PATH)
-                
-                # Perform scraping as in the "开始网站监控" button
-                for site in websites:
-                    st.write(f"### 正在重新拉取 {site} 的数据...")
-                    raw_html = get_raw_html(site)
-                    if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
-                        st.error(raw_html)
-                    else:
-                        st.write("数据拉取成功，正在分析热点内容...")
-                        analysis = analyze_with_qwen(site, raw_html)
-                        # Save the analysis for this website
-                        save_website_data(site, analysis)
-                        st.text_area(f"{site} 热点分析", analysis, height=300)
-                    st.markdown("---")
-        
-        # Display cached data if not scraping
-        if website_data and not st.button("隐藏历史数据", key="hide_website_data"):
-            st.subheader("已加载的网站数据")
-            for site, data in website_data.items():
-                with st.expander(f"{site} - 上次更新: {data.get('timestamp', '未知')}"):
-                    st.text_area(f"{site} 缓存热点分析", data.get('analysis', '没有数据'), height=300)
+        if st.button("开始网站监控"):
+            for site in websites:
+                st.write(f"### 正在拉取 {site} 的数据...")
+                raw_html = get_raw_html(site)
+                if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
+                    st.error(raw_html)
+                else:
+                    st.write("数据拉取成功，正在分析热点内容...")
+                    analysis = analyze_with_qwen(site, raw_html)
+                    st.text_area(f"{site} 热点分析", analysis, height=300)
+                st.markdown("---")
     
-    # X/Twitter monitoring tab
+    # X/Twitter monitoring tab (NEW)
     with monitoring_tabs[1]:
         st.write("监控AI领域专家X动态")
         
         # Display information about the scraper
         st.info("这个功能会抓取AI领域专家的X动态，并用Qwen进行分析，提取insights。")
-        
-        # Load existing Twitter data
-        twitter_data = load_twitter_data()
-        twitter_insights = load_twitter_insights()
-        
-        if twitter_data.get("tweets"):
-            st.info(f"已加载 {len(twitter_data.get('tweets', []))} 条推文数据。上次更新时间: {twitter_data.get('timestamp', '未知')}")
         
         # Options for scraping
         top_influencers = [
@@ -649,181 +467,117 @@ with tabs[0]:
             "karpathy",  # Andrej Karpathy
             "ilyasut",  # Ilya Sutskever
         ]
-        selected_handles = st.multiselect("选择要监控的X账号:", options=top_influencers, default=top_influencers[:3])
+        selected_handles = st.multiselect("监控所有107个专家的X):", options=top_influencers, default=top_influencers[:200])
         
         # Limit the number of selected handles
         max_handles = min(len(selected_handles) if selected_handles else 3, 10)
         
-        col1, col2 = st.columns(2)
-        with col1:
-            # Scrape button
-            if st.button("开始抓取X数据", key="scrape_twitter"):
-                if selected_handles:
-                    st.session_state["twitter_handles"] = selected_handles[:max_handles]
-                    st.write(f"### 正在抓取 {len(selected_handles[:max_handles])} 个AI专家的Twitter数据...")
+        # Scrape button
+        if st.button("开始抓取X数据"):
+            if selected_handles:
+                st.session_state["twitter_handles"] = selected_handles[:max_handles]
+                st.write(f"### 正在抓取107个AI专家的Twitter数据...")
+                
+                # Call the function to scrape and analyze tweets
+                all_tweets, all_analyses = scrape_ai_influencer_tweets()
+                
+                # Store in session state for persistence
+                st.session_state["twitter_results"] = {
+                    "tweets": all_tweets,
+                    "analyses": all_analyses
+                }
+                
+                # Display analyses
+                if all_analyses:
+                    # First display the collective AI insights
+                    if st.session_state["ai_insights"]:
+                        st.subheader("🔍 AI行业综合洞察")
+                        st.text_area("AI行业洞察分析", st.session_state["ai_insights"], height=400)
                     
-                    # Call the function to scrape and analyze tweets
-                    all_tweets, all_analyses = scrape_ai_influencer_tweets()
-                    
-                    # Store in session state for persistence
-                    st.session_state["twitter_results"] = {
-                        "tweets": all_tweets,
-                        "analyses": all_analyses
-                    }
-                    
-                    # Display analyses
-                    if all_analyses:
-                        # First display the collective AI insights
-                        if st.session_state["ai_insights"]:
-                            st.subheader("🔍 AI行业综合洞察")
-                            st.text_area("AI行业洞察分析", st.session_state["ai_insights"], height=400)
+                    # Display top engaging tweets with translations
+                    if "top_engaging_tweets" in st.session_state:
+                        st.subheader("🔝 最具互动性的推文")
                         
-                        # Display top engaging tweets with translations
-                        if "top_engaging_tweets" in st.session_state:
-                            st.subheader("🔝 最具互动性的推文")
-                            
-                            top_tweets_tabs = st.tabs(["热门转发", "热门回复", "热门点赞"])
-                            
-                            # Display top retweets
-                            with top_tweets_tabs[0]:
-                                st.write("### 最高转发量推文")
-                                for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_retweets"], 1):
-                                    with st.expander(f"{i}. @{tweet['handle']} (转发: {tweet['retweets']})"):
-                                        st.markdown(f"""
-                                        **作者：** {tweet['author']} (@{tweet['handle']})  
-                                        **日期：** {tweet['date']}  
-                                        **原文：** {tweet['text']}  
-                                        **中文翻译：** {tweet['translation']}  
-                                        **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                                        **链接：** [查看原文]({tweet['url']})
-                                        """)
-                            
-                            # Display top replies
-                            with top_tweets_tabs[1]:
-                                st.write("### 最高回复量推文")
-                                for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_replies"], 1):
-                                    with st.expander(f"{i}. @{tweet['handle']} (回复: {tweet['replies']})"):
-                                        st.markdown(f"""
-                                        **作者：** {tweet['author']} (@{tweet['handle']})  
-                                        **日期：** {tweet['date']}  
-                                        **原文：** {tweet['text']}  
-                                        **中文翻译：** {tweet['translation']}  
-                                        **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                                        **链接：** [查看原文]({tweet['url']})
-                                        """)
-                            
-                            # Display top likes
-                            with top_tweets_tabs[2]:
-                                st.write("### 最高点赞量推文")
-                                for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_likes"], 1):
-                                    with st.expander(f"{i}. @{tweet['handle']} (点赞: {tweet['likes']})"):
-                                        st.markdown(f"""
-                                        **作者：** {tweet['author']} (@{tweet['handle']})  
-                                        **日期：** {tweet['date']}  
-                                        **原文：** {tweet['text']}  
-                                        **中文翻译：** {tweet['translation']}  
-                                        **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                                        **链接：** [查看原文]({tweet['url']})
-                                        """)
+                        top_tweets_tabs = st.tabs(["热门转发", "热门回复", "热门点赞"])
                         
-                        # Then display individual analyses
-                        st.subheader("🧠 个人推文分析")
-                        for analysis_item in all_analyses:
-                            handle = analysis_item["handle"]
-                            author_name = analysis_item.get("author_name", handle)
-                            analysis = analysis_item["analysis"]
-                            
-                            # Get tweets for this handle
-                            handle_tweets = [t for t in all_tweets if t["handle"] == handle]
-                            
-                            # Create a container for each author
-                            author_container = st.container()
-                            with author_container:
-                                st.markdown(f"### {author_name} (@{handle})")
-                                
-                                # Display analysis in the container
-                                st.text_area(f"{handle} 推文分析", analysis, height=250)
-                                
-                                # Display tweets for this author
-                                if handle_tweets:
-                                    # Display raw tweets in a simple list format to avoid nesting expanders
-                                    st.markdown(f"#### @{handle} 的原始推文 ({len(handle_tweets)} 条)")
-                                    for tweet in handle_tweets:
-                                        st.markdown(f"""
-                                        **日期：** {tweet['date']}  
-                                        **内容：** {tweet['text']}  
-                                        **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
-                                        **链接：** [查看原文]({tweet['url']})
-                                        ---
-                                        """)
-                                else:
-                                    st.info(f"未找到 @{handle} 的推文数据")
-                else:
-                    st.warning("请选择至少一个X账号进行监控。")
-        
-        with col2:
-            if st.button("重新抓取", key="rescrape_twitter"):
-                if selected_handles:
-                    st.warning("正在重新抓取所有X数据...")
-                    # Clear existing data
-                    if os.path.exists(TWITTER_DATA_PATH):
-                        os.remove(TWITTER_DATA_PATH)
-                    if os.path.exists(TWITTER_INSIGHTS_PATH):
-                        os.remove(TWITTER_INSIGHTS_PATH)
+                        # Display top retweets
+                        with top_tweets_tabs[0]:
+                            st.write("### 最高转发量推文")
+                            for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_retweets"], 1):
+                                with st.expander(f"{i}. @{tweet['handle']} (转发: {tweet['retweets']})"):
+                                    st.markdown(f"""
+                                    **作者：** {tweet['author']} (@{tweet['handle']})  
+                                    **日期：** {tweet['date']}  
+                                    **原文：** {tweet['text']}  
+                                    **中文翻译：** {tweet['translation']}  
+                                    **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                                    **链接：** [查看原文]({tweet['url']})
+                                    """)
+                        
+                        # Display top replies
+                        with top_tweets_tabs[1]:
+                            st.write("### 最高回复量推文")
+                            for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_replies"], 1):
+                                with st.expander(f"{i}. @{tweet['handle']} (回复: {tweet['replies']})"):
+                                    st.markdown(f"""
+                                    **作者：** {tweet['author']} (@{tweet['handle']})  
+                                    **日期：** {tweet['date']}  
+                                    **原文：** {tweet['text']}  
+                                    **中文翻译：** {tweet['translation']}  
+                                    **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                                    **链接：** [查看原文]({tweet['url']})
+                                    """)
+                        
+                        # Display top likes
+                        with top_tweets_tabs[2]:
+                            st.write("### 最高点赞量推文")
+                            for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_likes"], 1):
+                                with st.expander(f"{i}. @{tweet['handle']} (点赞: {tweet['likes']})"):
+                                    st.markdown(f"""
+                                    **作者：** {tweet['author']} (@{tweet['handle']})  
+                                    **日期：** {tweet['date']}  
+                                    **原文：** {tweet['text']}  
+                                    **中文翻译：** {tweet['translation']}  
+                                    **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                                    **链接：** [查看原文]({tweet['url']})
+                                    """)
                     
-                    st.session_state["twitter_handles"] = selected_handles[:max_handles]
-                    st.write(f"### 正在重新抓取 {len(selected_handles[:max_handles])} 个AI专家的Twitter数据...")
-                    
-                    # Call the function to scrape and analyze tweets
-                    all_tweets, all_analyses = scrape_ai_influencer_tweets()
-                    
-                    # Store in session state for persistence
-                    st.session_state["twitter_results"] = {
-                        "tweets": all_tweets,
-                        "analyses": all_analyses
-                    }
-                    
-                    # Similar display code as above
-                else:
-                    st.warning("请选择至少一个X账号进行监控。")
-        
-        # Display cached Twitter data if available and not scraping
-        if (twitter_data.get("tweets") or twitter_insights.get("ai_insights")) and not st.button("隐藏历史数据", key="hide_twitter_data"):
-            st.subheader("已加载的X数据")
-            
-            # Display AI insights
-            if twitter_insights.get("ai_insights"):
-                with st.expander(f"AI行业综合洞察 - 上次更新: {twitter_insights.get('timestamp', '未知')}"):
-                    st.text_area("缓存AI行业洞察分析", twitter_insights.get("ai_insights", "没有数据"), height=400)
-            
-            # Display top engaging tweets if available
-            if twitter_insights.get("top_engaging_tweets"):
-                with st.expander("最具互动性的推文"):
-                    top_engaging_tweets = twitter_insights.get("top_engaging_tweets", {})
-                    
-                    if "top_retweets" in top_engaging_tweets:
-                        st.markdown("#### 最高转发量推文")
-                        for i, tweet in enumerate(top_engaging_tweets["top_retweets"], 1):
-                            st.markdown(f"""
-                            **{i}. @{tweet['handle']} (转发: {tweet['retweets']})** - {tweet['text'][:100]}...
-                            """)
-                    
-                    if "top_likes" in top_engaging_tweets:
-                        st.markdown("#### 最高点赞量推文")
-                        for i, tweet in enumerate(top_engaging_tweets["top_likes"], 1):
-                            st.markdown(f"""
-                            **{i}. @{tweet['handle']} (点赞: {tweet['likes']})** - {tweet['text'][:100]}...
-                            """)
-            
-            # Display individual analyses if available
-            if twitter_data.get("analyses"):
-                with st.expander("个人推文分析"):
-                    for analysis_item in twitter_data.get("analyses", []):
+                    # Then display individual analyses - MODIFIED to display tweet listings alongside analysis
+                    st.subheader("🧠 个人推文分析")
+                    for analysis_item in all_analyses:
                         handle = analysis_item["handle"]
                         author_name = analysis_item.get("author_name", handle)
-                        st.markdown(f"**{author_name} (@{handle})**")
-                        st.markdown(analysis_item["analysis"][:300] + "...")
-                        st.markdown("---")
+                        analysis = analysis_item["analysis"]
+                        
+                        # Get tweets for this handle
+                        handle_tweets = [t for t in all_tweets if t["handle"] == handle]
+                        
+                        # Create a container for each author
+                        author_container = st.container()
+                        with author_container:
+                            st.markdown(f"### {author_name} (@{handle})")
+                            
+                            # Display analysis in the container
+                            st.text_area(f"{handle} 推文分析", analysis, height=250)
+                            
+                            # Display tweets for this author - FIXED: separate container for tweets (not nested)
+                            if handle_tweets:
+                                # Display raw tweets in a simple list format to avoid nesting expanders
+                                st.markdown(f"#### @{handle} 的原始推文 ({len(handle_tweets)} 条)")
+                                for tweet in handle_tweets:
+                                    st.markdown(f"""
+                                    **日期：** {tweet['date']}  
+                                    **内容：** {tweet['text']}  
+                                    **互动：** 👍 {tweet['likes']} | 🔁 {tweet['retweets']} | 💬 {tweet['replies']}  
+                                    **链接：** [查看原文]({tweet['url']})
+                                    ---
+                                    """)
+                            else:
+                                st.info(f"未找到 @{handle} 的推文数据")
+            else:
+                st.warning("请选择至少一个X账号进行监控。")
+
+
 
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
@@ -832,7 +586,6 @@ with tabs[1]:
     st.info("开发中")
     scheduled_time = st.time_input("选择汇报时间（例如每日定时）", dt.time(hour=12, minute=0))
     st.write(f"当前设置的汇报时间为：{scheduled_time}")
-
 # ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[2]:
     st.header("事实知识库")
@@ -854,8 +607,6 @@ with tabs[2]:
                 "desc": source_desc,
                 "content": raw_content
             })
-            # Save to persistent storage
-            save_rag_data(st.session_state["local_facts"], st.session_state["local_files"])
             st.success(f"信息源 {new_source} 已添加，并提取内容！")
     
     st.markdown("---")
@@ -877,8 +628,6 @@ with tabs[2]:
                         "file_name": file.name,
                         "content": file_text
                     })
-                    # Save to persistent storage
-                    save_rag_data(st.session_state["local_facts"], st.session_state["local_files"])
                     st.success(f"文件 {file.name} 已上传并处理！")
                 except Exception as e:
                     st.error(f"处理文件 {file.name} 时出错：{e}")
@@ -897,16 +646,6 @@ with tabs[2]:
             st.write(f"**{idx}.** {file_info['file_name']}")
     else:
         st.info("还没有上传任何文件。")
-    
-    # Add a clear button to reset the RAG database
-    if st.button("清空所有本地信息"):
-        st.session_state["local_facts"] = []
-        st.session_state["local_files"] = []
-        save_rag_data([], [])
-        if os.path.exists(RAG_DATA_PATH):
-            os.remove(RAG_DATA_PATH)
-        st.success("已清空所有本地信息！")
-
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
     st.header("直接聊天")
@@ -935,8 +674,3 @@ with tabs[3]:
             st.markdown(f"**您:** {message['content']}")
         else:
             st.markdown(f"**AI:** {message['content']}")
-    
-    # Clear chat history button
-    if st.button("清空聊天记录"):
-        st.session_state["chat_history"] = []
-        st.success("聊天记录已清空！")
