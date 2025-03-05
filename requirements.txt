@@ -6,3 +6,16 @@ dashscope
 firecrawl
 apify_client
 datetime
+requests
+python-dotenv
+langchain
+langchain_community
+chromadb
+sentence-transformers
+pypdf
+docx2txt
+pandas
+tiktoken
+tqdm
+numpy
+pillow
