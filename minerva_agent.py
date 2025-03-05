@@ -452,7 +452,7 @@ def extract_ai_insights_with_deepseek(tweets_data):
     
     # Use OpenAI client with Deepseek model
     client = OpenAI(
-        api_key=os.getenv("DASHSCOPE_API_KEY", "sk-1a28c3fcc7e044cbacd6faf47dc89755"),
+        api_key=os.getenv("DASHSCOPE_API_KEY"),
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
     
@@ -478,16 +478,21 @@ def extract_ai_insights_with_deepseek(tweets_data):
     ]
     
     completion = client.chat.completions.create(
-        model="deepseek-r1",  # Use deepseek model
+        model="deepseek-r1",
         messages=messages
     )
     
+    # 获取思考过程和最终答案
+    thinking_process = completion.choices[0].message.reasoning_content
     ai_insights = completion.choices[0].message.content
     
     # Save AI insights for persistence
     save_twitter_insights(ai_insights, st.session_state.get("top_engaging_tweets"))
     
-    return ai_insights
+    return {
+        "思考过程": thinking_process,
+        "分析结果": ai_insights
+    }
 
 # Function for direct chat using Qwen (standard mode)
 def chat_with_qwen(user_message):
@@ -534,19 +539,23 @@ def chat_with_local_facts(user_message):
 
 # Function for direct chat using Deepseek model
 def chat_with_deepseek(user_message):
-    client = OpenAI(
-        api_key=os.getenv("DASHSCOPE_API_KEY", "sk-1a28c3fcc7e044cbacd6faf47dc89755"),
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    )
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": user_message},
     ]
     completion = client.chat.completions.create(
-        model="deepseek-r1",  # 使用 deepseek 模型
+        model="deepseek-r1",
         messages=messages
     )
-    return completion.choices[0].message.content
+    
+    # 通过reasoning_content字段获取思考过程
+    thinking_process = completion.choices[0].message.reasoning_content
+    final_answer = completion.choices[0].message.content
+    
+    return {
+        "思考过程": thinking_process,
+        "最终答案": final_answer
+    }
 
 # ----------------------- Streamlit UI -----------------------
 st.title("Minerva Agent")
@@ -631,7 +640,7 @@ with tabs[0]:
         st.write("监控AI领域专家X动态")
         
         # Display information about the scraper
-        st.info("这个功能会抓取AI领域专家的X动态，并用Qwen进行分析，提取insights。")
+        st.info("这个功能会抓取AI领域专家的X动态，并用Deepseek进行分析，提取insights。")
         
         # Load existing Twitter data
         twitter_data = load_twitter_data()
@@ -772,7 +781,7 @@ with tabs[0]:
                         os.remove(TWITTER_INSIGHTS_PATH)
                     
                     st.session_state["twitter_handles"] = selected_handles[:max_handles]
-                    st.write(f"### 正在重新抓取 {len(selected_handles[:max_handles])} 个AI专家的Twitter数据...")
+                    st.write(f"### 正在重新抓取这2天内 {len(selected_handles[:max_handles])} 个AI专家的Twitter数据，并用Deepseek分析（会有些慢）...")
                     
                     # Call the function to scrape and analyze tweets
                     all_tweets, all_analyses = scrape_ai_influencer_tweets()
