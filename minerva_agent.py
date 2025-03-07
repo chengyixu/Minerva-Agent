@@ -268,7 +268,7 @@ def save_rag_metadata(metadata):
     return metadata
 
 def get_file_content(file_path):
-    """Extracts content from a file based on its extension."""
+    """Extracts content from a file based on its extension with improved PDF handling."""
     _, ext = os.path.splitext(file_path)
     ext = ext.lower()
     
@@ -288,15 +288,9 @@ def get_file_content(file_path):
             df = pd.read_excel(file_path)
             return df.to_string()
         
-        # Handle PDF files
+        # Improved PDF handling
         elif ext == '.pdf':
-            with open(file_path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
-                pages = []
-                for page in reader.pages:
-                    text = page.extract_text() or ""
-                    pages.append(text)
-                return "\n".join(pages)
+            return extract_pdf_content(file_path)
         
         # Handle DOCX files
         elif ext == '.docx':
@@ -314,7 +308,7 @@ def get_file_content(file_path):
                         slide_texts.append(shape.text)
             return "\n".join(slide_texts)
         
-        # Fallback for other binary files: read the entire file in binary mode
+        # Fallback for other binary files
         else:
             with open(file_path, 'rb') as f:
                 content = f.read()
@@ -323,6 +317,57 @@ def get_file_content(file_path):
     except Exception as e:
         return f"Error reading file: {str(e)}"
 
+def extract_pdf_content(file_path):
+    """
+    Extract content from a PDF file with improved error handling and better structure.
+    
+    Args:
+        file_path (str): Path to the PDF file
+        
+    Returns:
+        str: Structured content of the PDF with page markers
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            # Create a PDF reader object
+            pdf_reader = PyPDF2.PdfReader(f)
+            
+            # Get the number of pages in the PDF
+            num_pages = len(pdf_reader.pages)
+            
+            # Initialize content storage
+            content_parts = []
+            
+            # Loop through each page and extract text
+            for page_num in range(num_pages):
+                try:
+                    # Get the page object
+                    page = pdf_reader.pages[page_num]
+                    
+                    # Extract text from the page
+                    text = page.extract_text()
+                    
+                    # Check if page has content
+                    if text and text.strip():
+                        content_parts.append(f"[Page {page_num + 1}]")
+                        content_parts.append(text.strip())
+                    else:
+                        # Note pages with no extractable text
+                        content_parts.append(f"[Page {page_num + 1}: No extractable text content]")
+                
+                except Exception as e:
+                    content_parts.append(f"[Error extracting text from page {page_num + 1}: {str(e)}]")
+            
+            return "\n".join(content_parts)
+            
+    except FileNotFoundError:
+        return f"Error: The file '{file_path}' was not found."
+    except PyPDF2.errors.PdfReadError:
+        return f"Error: '{file_path}' is not a valid PDF file or is encrypted."
+    except Exception as e:
+        return f"An error occurred while reading the PDF: {str(e)}"
+
+        
 def scan_forag_directory():
     """Scan the forag directory for files and update metadata"""
     metadata = load_rag_metadata()
