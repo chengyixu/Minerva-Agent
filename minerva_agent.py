@@ -48,6 +48,7 @@ def load_websites_db():
                 return []
     else:
         # Initialize with default websites if database doesn't exist
+        # This will only happen on first run
         default_websites = [
             {"url": "www.qbitai.com", "name": "量子位"},
             {"url": "www.jiqizhixin.com", "name": "机器之心"},
@@ -59,6 +60,7 @@ def load_websites_db():
             {"url": "36kr.com/user/6038047", "name": "乌鸦智能说"},
             {"url": "www.zhihu.com/people/Khazix", "name": "数字生命卡兹克"}
         ]
+        # Create the database with default accounts
         save_websites_db(default_websites)
         return default_websites
 
@@ -91,6 +93,7 @@ def remove_website_from_db(url):
     save_websites_db(websites)
     return websites
 
+
 # Helper functions for Twitter accounts database
 def load_twitter_accounts_db():
     """Load the Twitter accounts database from JSON file"""
@@ -102,6 +105,7 @@ def load_twitter_accounts_db():
                 return []
     else:
         # Initialize with default Twitter accounts if database doesn't exist
+        # This will only happen on first run
         default_accounts = [
             {"handle": "sama", "name": "Sam Altman (OpenAI)"},
             {"handle": "ylecun", "name": "Yann LeCun (Meta)"},
@@ -110,6 +114,7 @@ def load_twitter_accounts_db():
             {"handle": "karpathy", "name": "Andrej Karpathy (Former Tesla)"},
             {"handle": "ilyasut", "name": "Ilya Sutskever (OpenAI)"}
         ]
+        # Create the database with default accounts
         save_twitter_accounts_db(default_accounts)
         return default_accounts
 
@@ -317,7 +322,7 @@ def get_file_content(file_path):
     except Exception as e:
         return f"Error reading file: {str(e)}"
 
-        
+
 def extract_pdf_content(file_path):
     """
     Extract content from a PDF file with improved error handling and better structure.
