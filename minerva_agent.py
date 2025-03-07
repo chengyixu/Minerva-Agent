@@ -13,11 +13,9 @@ import csv
 import pickle
 import glob
 import pandas as pd
-import os
-import pandas as pd
 import PyPDF2
 import docx
-from pptx import Presentation
+from python-pptx import Presentation
 
 
 # Create data directory if it doesn't exist
@@ -324,7 +322,7 @@ def get_file_content(file_path):
     
     except Exception as e:
         return f"Error reading file: {str(e)}"
-        
+
 def scan_forag_directory():
     """Scan the forag directory for files and update metadata"""
     metadata = load_rag_metadata()
