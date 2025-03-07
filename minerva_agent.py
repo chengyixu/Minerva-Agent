@@ -1112,7 +1112,7 @@ with tabs[0]:
         selected_accounts = st.multiselect(
             "选择要监控的X/Twitter账号:",
             options=[f"{account['name']} (@{account['handle']})" for account in twitter_accounts_db],
-            default=[f"{account['name']} (@{account['handle']})" for account in twitter_accounts_db[:3]]
+            default=[f"{account['name']} (@{account['handle']})" for account in twitter_accounts_db[:3000]]
         )
         
         for account_display in selected_accounts:
