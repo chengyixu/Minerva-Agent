@@ -388,7 +388,7 @@ def chat_with_local_facts(user_message, selected_filters=None):
         context_text += f"类型: {file_meta.get('类型', '')}\n"
         context_text += f"名称: {file_meta.get('名称', '')}\n"
         context_text += f"标签: {file_meta.get('标签', '')}\n"
-        context_text += f"内容: {file_meta.get('content', '')[:1000]}\n\n"
+        context_text += f"内容: {file_meta.get('content', '')[:100000000]}\n\n"
     
     if not context_text:
         context_text = "当前没有匹配的本地文件信息。"
@@ -1264,8 +1264,8 @@ with tabs[1]:
                     # Display a preview of the file content
                     content_preview = file_meta.get('content', '')
                     if content_preview:
-                        if len(content_preview) > 1000:
-                            content_preview = content_preview[:1000] + "..."
+                        if len(content_preview) > 100000000:
+                            content_preview = content_preview[:100000000] + "..."
                         st.write("**文件内容预览：**")
                         st.text_area("内容", content_preview, height=200, key=f"content_{i}")
                     
