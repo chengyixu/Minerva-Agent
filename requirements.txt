@@ -19,3 +19,5 @@ tiktoken
 tqdm
 numpy
 pillow
+fastapi
+uvicorn

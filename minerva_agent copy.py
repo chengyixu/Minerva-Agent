@@ -18,119 +18,9 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 # File paths for persistent data storage
 WEBSITE_DATA_PATH = os.path.join(DATA_DIR, "website_data.json")
-WEBSITES_DB_PATH = os.path.join(DATA_DIR, "websites_db.json")
 TWITTER_DATA_PATH = os.path.join(DATA_DIR, "twitter_data.json")
-TWITTER_ACCOUNTS_DB_PATH = os.path.join(DATA_DIR, "twitter_accounts_db.json")
 TWITTER_INSIGHTS_PATH = os.path.join(DATA_DIR, "twitter_insights.json")
 RAG_DATA_PATH = os.path.join(DATA_DIR, "rag_data.pkl")
-
-# Helper functions for websites database
-def load_websites_db():
-    """Load the websites database from JSON file"""
-    if os.path.exists(WEBSITES_DB_PATH):
-        with open(WEBSITES_DB_PATH, 'r', encoding='utf-8') as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                return []
-    else:
-        # Initialize with default websites if database doesn't exist
-        default_websites = [
-            {"url": "www.qbitai.com", "name": "量子位"},
-            {"url": "www.jiqizhixin.com", "name": "机器之心"},
-            {"url": "36kr.com/information/AI", "name": "36kr"},
-            {"url": "mp.sohu.com/profile?xpt=dXBob25lc3RjYXBpdGFsQDE2My5jb20=", "name": "硅兔赛跑"},
-            {"url": "www.jazzyear.com", "name": "甲子光年"},
-            {"url": "aiera.com.cn", "name": "新智元"},
-            {"url": "wublock123.com", "name": "吴说Real"},
-            {"url": "36kr.com/user/6038047", "name": "乌鸦智能说"},
-            {"url": "www.zhihu.com/people/Khazix", "name": "数字生命卡兹克"}
-        ]
-        save_websites_db(default_websites)
-        return default_websites
-
-def save_websites_db(websites):
-    """Save the websites database to a JSON file"""
-    with open(WEBSITES_DB_PATH, 'w', encoding='utf-8') as f:
-        json.dump(websites, f, ensure_ascii=False, indent=4)
-
-def add_website_to_db(url, name):
-    """Add a new website to the database"""
-    websites = load_websites_db()
-    
-    # Check if website already exists
-    for website in websites:
-        if website["url"] == url:
-            # Update the name if it's already in the database
-            website["name"] = name
-            save_websites_db(websites)
-            return websites, False
-    
-    # Add new website
-    websites.append({"url": url, "name": name})
-    save_websites_db(websites)
-    return websites, True
-
-def remove_website_from_db(url):
-    """Remove a website from the database"""
-    websites = load_websites_db()
-    websites = [website for website in websites if website["url"] != url]
-    save_websites_db(websites)
-    return websites
-
-# Helper functions for Twitter accounts database
-def load_twitter_accounts_db():
-    """Load the Twitter accounts database from JSON file"""
-    if os.path.exists(TWITTER_ACCOUNTS_DB_PATH):
-        with open(TWITTER_ACCOUNTS_DB_PATH, 'r', encoding='utf-8') as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                return []
-    else:
-        # Initialize with default Twitter accounts if database doesn't exist
-        default_accounts = [
-            {"handle": "sama", "name": "Sam Altman (OpenAI)"},
-            {"handle": "ylecun", "name": "Yann LeCun (Meta)"},
-            {"handle": "AndrewYNg", "name": "Andrew Ng (Landing AI)"},
-            {"handle": "fchollet", "name": "François Chollet (Google)"},
-            {"handle": "karpathy", "name": "Andrej Karpathy (Former Tesla)"},
-            {"handle": "ilyasut", "name": "Ilya Sutskever (OpenAI)"}
-        ]
-        save_twitter_accounts_db(default_accounts)
-        return default_accounts
-
-def save_twitter_accounts_db(accounts):
-    """Save the Twitter accounts database to a JSON file"""
-    with open(TWITTER_ACCOUNTS_DB_PATH, 'w', encoding='utf-8') as f:
-        json.dump(accounts, f, ensure_ascii=False, indent=4)
-
-def add_twitter_account_to_db(handle, name):
-    """Add a new Twitter account to the database"""
-    accounts = load_twitter_accounts_db()
-    
-    # Clean handle by removing @ if present
-    clean_handle = handle.replace("@", "").strip()
-    
-    # Check if account already exists
-    for account in accounts:
-        if account["handle"].lower() == clean_handle.lower():
-            # Update the name if it's already in the database
-            account["name"] = name
-            save_twitter_accounts_db(accounts)
-            return accounts, False
-    
-    # Add new account
-    accounts.append({"handle": clean_handle, "name": name})
-    save_twitter_accounts_db(accounts)
-    return accounts, True
-
-def remove_twitter_account_from_db(handle):
-    """Remove a Twitter account from the database"""
-    accounts = load_twitter_accounts_db()
-    accounts = [account for account in accounts if account["handle"] != handle]
-    save_twitter_accounts_db(accounts)
-    return accounts
 
 # Helper functions for data persistence
 def save_website_data(domain, analysis):
@@ -266,38 +156,15 @@ fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
 app = FirecrawlApp(api_key=fire_api)
 jina_api = "jina_26a656e516224ce28e71cc3b28fa7b07zUchXe4_MJ_935m8SpS9-TNGL--w"
 
-# Function to get website name from URL
-def get_website_name(url):
-    websites = load_websites_db()
-    
-    # Clean URL by removing protocol and trailing slash
-    clean_url = url.replace("https://", "").replace("http://", "").strip()
-    if clean_url.endswith('/'):
-        clean_url = clean_url[:-1]
-    
-    # Try to find the website in the database
-    for website in websites:
-        if website["url"] == clean_url or website["url"] in clean_url or clean_url in website["url"]:
-            return website["name"]
-    
-    # If not found, return the URL itself
-    return url
-
 # Function to get raw HTML content from the websites using Firecrawl
 def get_raw_html(domain):
     try:
-        # Add protocol if not present
-        if not domain.startswith('http'):
-            url = f'https://{domain}'
-        else:
-            url = domain
-            
         # Use Jina to get the raw HTML
-        jina_url = f'https://r.jina.ai/{url}'
+        url = f'https://r.jina.ai/https://{domain}'
         headers = {
             'Authorization': 'Bearer jina_26a656e516224ce28e71cc3b28fa7b07zUchXe4_MJ_935m8SpS9-TNGL--w'
         }
-        response = requests.get(jina_url, headers=headers)
+        response = requests.get(url, headers=headers)
         
         # Check if the request was successful
         response.raise_for_status()  # Raises an exception for 4XX/5XX responses
@@ -390,9 +257,16 @@ def get_top_engaging_tweets(all_tweets):
     return top_tweets
 
 # Function to scrape AI influencer tweets from X (Twitter)
-def scrape_ai_influencer_tweets(twitter_handles):
+def scrape_ai_influencer_tweets():
     # Initialize the ApifyClient with your API token
     client = ApifyClient("apify_api_kbKxE4fYwbZOMBA30gS7DkbjinZqy91SEHb9")
+    
+    # Twitter handles of AI researchers and professionals
+    twitter_handles = [
+        "sama",               # Sam Altman
+        "ylecun",             # Yann LeCun
+        "AndrewYNg",          # Andrew Ng
+    ]
     
     # Calculate date range for the last 2 days
     end_date = datetime.now().strftime("%Y-%m-%d")
@@ -417,17 +291,10 @@ def scrape_ai_influencer_tweets(twitter_handles):
         # Write header
         csv_writer.writerow(["Author", "Twitter Handle", "text", "createdAt", "replyCount", "likeCount", "retweetCount", "url"])
         
-        # Load the Twitter accounts database to get names
-        twitter_accounts = load_twitter_accounts_db()
-        account_names = {account["handle"]: account["name"] for account in twitter_accounts}
-        
         # Iterate through each Twitter handle
         for i, handle in enumerate(twitter_handles):
             status_text.text(f"[{i+1}/{len(twitter_handles)}] Scraping tweets for @{handle}...")
             progress.progress((i+1) / len(twitter_handles))
-            
-            # Get display name from database or use handle as fallback
-            display_name = account_names.get(handle, handle)
             
             # Prepare the Actor input
             run_input = {
@@ -466,7 +333,6 @@ def scrape_ai_influencer_tweets(twitter_handles):
                         tweet_data = {
                             "author": author_name,
                             "handle": handle,
-                            "display_name": display_name,  # Add display name from database
                             "text": text,
                             "date": date,
                             "replies": replies,
@@ -489,15 +355,15 @@ def scrape_ai_influencer_tweets(twitter_handles):
                         
                         # Analyze tweets with Qwen
                         analysis = analyze_tweets_with_qwen(handle, author_tweets)
-                        # Get the author's full name from the database or first tweet
-                        author_full_name = display_name if display_name != handle else (author_tweets[0]["author"] if author_tweets else handle)
+                        # Get the author's full name from the first tweet or use handle as fallback
+                        author_full_name = author_tweets[0]["author"] if author_tweets else handle
                         all_analyses.append({
                             "handle": handle,
                             "author_name": author_full_name,
                             "analysis": analysis
                         })
                     
-                    st.write(f"  Scraped {len(author_tweets)} tweets for @{handle} ({display_name})")
+                    st.write(f"  Scraped {len(author_tweets)} tweets for @{handle}")
                     success = True
                     
                 except Exception as e:
@@ -582,7 +448,7 @@ def extract_ai_insights_with_deepseek(tweets_data):
     # Prepare tweet content for analysis
     tweet_content = ""
     for tweet in top_tweets:
-        tweet_content += f"Author: @{tweet['handle']} ({tweet.get('display_name', tweet['author'])})\nTweet: {tweet['text']}\nLikes: {tweet['likes']}, Retweets: {tweet['retweets']}\nDate: {tweet['date']}\n\n"
+        tweet_content += f"Author: @{tweet['handle']} ({tweet['author']})\nTweet: {tweet['text']}\nLikes: {tweet['likes']}, Retweets: {tweet['retweets']}\nDate: {tweet['date']}\n\n"
     
     # Use OpenAI client with Deepseek model
     client = OpenAI(
@@ -693,8 +559,10 @@ def chat_with_deepseek(user_message):
 
 # ----------------------- Streamlit UI -----------------------
 st.title("Minerva Agent")
+
 # Create four tabs for different functionalities
 tabs = st.tabs(["热点监控", "定时汇报", "事实知识库 (RAG)", "直接聊天"])
+
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
     st.header("热点监控")
@@ -711,64 +579,23 @@ with tabs[0]:
         if website_data:
             st.info(f"已加载 {len(website_data)} 个网站的历史数据。上次更新时间: {list(website_data.values())[0].get('timestamp', '未知')}")
         
-        # Load websites from database
-        websites_db = load_websites_db()
-        
-        # Website database management section
-        with st.expander("网站数据库管理"):
-            # Display current websites in the database
-            st.subheader("当前监控的网站")
-            for i, website in enumerate(websites_db):
-                col1, col2, col3 = st.columns([3, 3, 1])
-                with col1:
-                    st.text(website["name"])
-                with col2:
-                    st.text(website["url"])
-                with col3:
-                    if st.button("删除", key=f"del_website_{i}"):
-                        websites_db = remove_website_from_db(website["url"])
-                        st.success(f"已删除网站: {website['name']}")
-                        st.experimental_rerun()
-            
-            # Form to add a new website
-            st.subheader("添加新网站")
-            with st.form("add_website_form"):
-                new_url = st.text_input("网站URL (例如: www.example.com):")
-                new_name = st.text_input("网站名称 (例如: 示例网站):")
-                submitted = st.form_submit_button("添加网站")
-                
-                if submitted and new_url and new_name:
-                    # Clean URL
-                    clean_url = new_url.replace("https://", "").replace("http://", "").strip()
-                    if clean_url.endswith('/'):
-                        clean_url = clean_url[:-1]
-                    
-                    websites_db, is_new = add_website_to_db(clean_url, new_name)
-                    if is_new:
-                        st.success(f"已添加新网站: {new_name} ({clean_url})")
-                    else:
-                        st.success(f"已更新网站名称: {new_name} ({clean_url})")
-                    st.experimental_rerun()
-        
-        # Build a list of websites for monitoring
-        monitoring_websites = []
-        selected_websites = st.multiselect(
-            "选择要监控的网站:",
-            options=[website["name"] for website in websites_db],
-            default=[website["name"] for website in websites_db]
-        )
-        
-        for website in websites_db:
-            if website["name"] in selected_websites:
-                monitoring_websites.append(website["url"])
+        default_websites = ["lilianweng.github.io",
+        "www.jasonwei.net/blog",
+        "muennighoff.github.io/",
+        "thomwolf.io/",
+        "dennyzhou.github.io/",
+        "aiera.com.cn/news/",
+        "www.jiqizhixin.com/",
+        "foresightnews.pro/column/detail/101",
+        ]
+        input_websites = st.text_area("网站域名 (逗号分隔),从www开始, 例如（www.jasonwei.net/blog）:", value=', '.join(default_websites), height=100)
+        websites = [site.strip() for site in input_websites.split(',')]
         
         col1, col2 = st.columns(2)
         with col1:
             if st.button("开始网站监控", key="scrape_websites"):
-                for site in monitoring_websites:
-                    # Get the website name
-                    site_name = get_website_name(site)
-                    st.write(f"### 正在拉取 {site_name} 的数据...")
+                for site in websites:
+                    st.write(f"### 正在拉取 {site} 的数据...")
                     raw_html = get_raw_html(site)
                     if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
                         st.error(raw_html)
@@ -777,7 +604,7 @@ with tabs[0]:
                         analysis = analyze_with_qwen(site, raw_html)
                         # Save the analysis for this website
                         save_website_data(site, analysis)
-                        st.text_area(f"{site_name} 热点分析", analysis, height=300)
+                        st.text_area(f"{site} 热点分析", analysis, height=300)
                     st.markdown("---")
         
         with col2:
@@ -788,10 +615,8 @@ with tabs[0]:
                     os.remove(WEBSITE_DATA_PATH)
                 
                 # Perform scraping as in the "开始网站监控" button
-                for site in monitoring_websites:
-                    # Get the website name
-                    site_name = get_website_name(site)
-                    st.write(f"### 正在重新拉取 {site_name} 的数据...")
+                for site in websites:
+                    st.write(f"### 正在重新拉取 {site} 的数据...")
                     raw_html = get_raw_html(site)
                     if isinstance(raw_html, str) and ('Error' in raw_html or 'Failed' in raw_html):
                         st.error(raw_html)
@@ -800,17 +625,15 @@ with tabs[0]:
                         analysis = analyze_with_qwen(site, raw_html)
                         # Save the analysis for this website
                         save_website_data(site, analysis)
-                        st.text_area(f"{site_name} 热点分析", analysis, height=300)
+                        st.text_area(f"{site} 热点分析", analysis, height=300)
                     st.markdown("---")
         
         # Display cached data if not scraping
         if website_data and not st.button("隐藏历史数据", key="hide_website_data"):
             st.subheader("已加载的网站数据")
             for site, data in website_data.items():
-                # Get the website name for display
-                site_name = get_website_name(site)
-                with st.expander(f"{site_name} - 上次更新: {data.get('timestamp', '未知')}"):
-                    st.text_area(f"{site_name} 缓存热点分析", data.get('analysis', '没有数据'), height=300)
+                with st.expander(f"{site} - 上次更新: {data.get('timestamp', '未知')}"):
+                    st.text_area(f"{site} 缓存热点分析", data.get('analysis', '没有数据'), height=300)
     
     # X/Twitter monitoring tab
     with monitoring_tabs[1]:
@@ -826,71 +649,30 @@ with tabs[0]:
         if twitter_data.get("tweets"):
             st.info(f"已加载 {len(twitter_data.get('tweets', []))} 条推文数据。上次更新时间: {twitter_data.get('timestamp', '未知')}")
         
-        # Load Twitter accounts from database
-        twitter_accounts_db = load_twitter_accounts_db()
+        # Options for scraping
+        top_influencers = [
+            "sama",  # Sam Altman
+            "ylecun",  # Yann LeCun
+            "AndrewYNg",  # Andrew Ng
+            "fchollet",  # François Chollet
+            "karpathy",  # Andrej Karpathy
+            "ilyasut",  # Ilya Sutskever
+        ]
+        selected_handles = st.multiselect("选择要监控的X账号:", options=top_influencers, default=top_influencers[:3])
         
-        # Twitter accounts database management section
-        with st.expander("X/Twitter账号数据库管理"):
-            # Display current Twitter accounts in the database
-            st.subheader("当前监控的X/Twitter账号")
-            for i, account in enumerate(twitter_accounts_db):
-                col1, col2, col3 = st.columns([3, 3, 1])
-                with col1:
-                    st.text(account["name"])
-                with col2:
-                    st.text(f"@{account['handle']}")
-                with col3:
-                    if st.button("删除", key=f"del_account_{i}"):
-                        twitter_accounts_db = remove_twitter_account_from_db(account["handle"])
-                        st.success(f"已删除账号: {account['name']} (@{account['handle']})")
-                        st.experimental_rerun()
-            
-            # Form to add a new Twitter account
-            st.subheader("添加新X/Twitter账号")
-            with st.form("add_twitter_account_form"):
-                new_handle = st.text_input("账号名称 (例如: elonmusk):")
-                new_name = st.text_input("显示名称 (例如: Elon Musk (Tesla/X)):")
-                submitted = st.form_submit_button("添加账号")
-                
-                if submitted and new_handle and new_name:
-                    # Clean handle by removing @ if present
-                    clean_handle = new_handle.replace("@", "").strip()
-                    
-                    twitter_accounts_db, is_new = add_twitter_account_to_db(clean_handle, new_name)
-                    if is_new:
-                        st.success(f"已添加新账号: {new_name} (@{clean_handle})")
-                    else:
-                        st.success(f"已更新账号名称: {new_name} (@{clean_handle})")
-                    st.experimental_rerun()
-        
-        # Build a list of Twitter handles for monitoring
-        monitoring_handles = []
-        selected_accounts = st.multiselect(
-            "选择要监控的X/Twitter账号:",
-            options=[f"{account['name']} (@{account['handle']})" for account in twitter_accounts_db],
-            default=[f"{account['name']} (@{account['handle']})" for account in twitter_accounts_db[:3]]
-        )
-        
-        for account_display in selected_accounts:
-            # Extract handle from display string like "Sam Altman (@sama)"
-            handle = account_display.split("(@")[1].replace(")", "")
-            monitoring_handles.append(handle)
-        
-        # Limit the number of selected handles to avoid rate limiting
-        max_handles = min(len(monitoring_handles) if monitoring_handles else 3, 10)
-        if len(monitoring_handles) > max_handles:
-            st.warning(f"由于API限制，一次最多只能监控{max_handles}个账号。已自动选择前{max_handles}个账号。")
-            monitoring_handles = monitoring_handles[:max_handles]
+        # Limit the number of selected handles
+        max_handles = min(len(selected_handles) if selected_handles else 3, 10)
         
         col1, col2 = st.columns(2)
         with col1:
             # Scrape button
             if st.button("开始抓取X数据", key="scrape_twitter"):
-                if monitoring_handles:
-                    st.write(f"### 正在抓取 {len(monitoring_handles)} 个AI专家的Twitter数据...")
+                if selected_handles:
+                    st.session_state["twitter_handles"] = selected_handles[:max_handles]
+                    st.write(f"### 正在抓取 {len(selected_handles[:max_handles])} 个AI专家的Twitter数据...")
                     
                     # Call the function to scrape and analyze tweets
-                    all_tweets, all_analyses = scrape_ai_influencer_tweets(monitoring_handles)
+                    all_tweets, all_analyses = scrape_ai_influencer_tweets()
                     
                     # Store in session state for persistence
                     st.session_state["twitter_results"] = {
@@ -916,10 +698,8 @@ with tabs[0]:
                                 st.write("### 最高转发量推文")
                                 for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_retweets"], 1):
                                     with st.expander(f"{i}. @{tweet['handle']} (转发: {tweet['retweets']})"):
-                                        # Use display_name if available
-                                        display_name = tweet.get('display_name', tweet['author'])
                                         st.markdown(f"""
-                                        **作者：** {display_name} (@{tweet['handle']})  
+                                        **作者：** {tweet['author']} (@{tweet['handle']})  
                                         **日期：** {tweet['date']}  
                                         **原文：** {tweet['text']}  
                                         **中文翻译：** {tweet['translation']}  
@@ -932,10 +712,8 @@ with tabs[0]:
                                 st.write("### 最高回复量推文")
                                 for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_replies"], 1):
                                     with st.expander(f"{i}. @{tweet['handle']} (回复: {tweet['replies']})"):
-                                        # Use display_name if available
-                                        display_name = tweet.get('display_name', tweet['author'])
                                         st.markdown(f"""
-                                        **作者：** {display_name} (@{tweet['handle']})  
+                                        **作者：** {tweet['author']} (@{tweet['handle']})  
                                         **日期：** {tweet['date']}  
                                         **原文：** {tweet['text']}  
                                         **中文翻译：** {tweet['translation']}  
@@ -948,10 +726,8 @@ with tabs[0]:
                                 st.write("### 最高点赞量推文")
                                 for i, tweet in enumerate(st.session_state["top_engaging_tweets"]["top_likes"], 1):
                                     with st.expander(f"{i}. @{tweet['handle']} (点赞: {tweet['likes']})"):
-                                        # Use display_name if available
-                                        display_name = tweet.get('display_name', tweet['author'])
                                         st.markdown(f"""
-                                        **作者：** {display_name} (@{tweet['handle']})  
+                                        **作者：** {tweet['author']} (@{tweet['handle']})  
                                         **日期：** {tweet['date']}  
                                         **原文：** {tweet['text']}  
                                         **中文翻译：** {tweet['translation']}  
@@ -996,7 +772,7 @@ with tabs[0]:
         
         with col2:
             if st.button("重新抓取", key="rescrape_twitter"):
-                if monitoring_handles:
+                if selected_handles:
                     st.warning("正在重新抓取所有X数据...")
                     # Clear existing data
                     if os.path.exists(TWITTER_DATA_PATH):
@@ -1004,10 +780,11 @@ with tabs[0]:
                     if os.path.exists(TWITTER_INSIGHTS_PATH):
                         os.remove(TWITTER_INSIGHTS_PATH)
                     
-                    st.write(f"### 正在重新抓取这2天内 {len(monitoring_handles)} 个AI专家的Twitter数据，并用Deepseek分析（会有些慢）...")
+                    st.session_state["twitter_handles"] = selected_handles[:max_handles]
+                    st.write(f"### 正在重新抓取这2天内 {len(selected_handles[:max_handles])} 个AI专家的Twitter数据，并用Deepseek分析（会有些慢）...")
                     
                     # Call the function to scrape and analyze tweets
-                    all_tweets, all_analyses = scrape_ai_influencer_tweets(monitoring_handles)
+                    all_tweets, all_analyses = scrape_ai_influencer_tweets()
                     
                     # Store in session state for persistence
                     st.session_state["twitter_results"] = {
@@ -1036,25 +813,24 @@ with tabs[0]:
                     if "top_retweets" in top_engaging_tweets:
                         st.markdown("#### 最高转发量推文")
                         for i, tweet in enumerate(top_engaging_tweets["top_retweets"], 1):
-                            display_name = tweet.get('display_name', tweet['author'])
                             st.markdown(f"""
-                            **{i}. {display_name} (@{tweet['handle']}) (转发: {tweet['retweets']})** - {tweet['text']}
+                            **{i}. @{tweet['handle']} (转发: {tweet['retweets']})** - {tweet['text']}
                             """)
                     
                     if "top_likes" in top_engaging_tweets:
                         st.markdown("#### 最高点赞量推文")
                         for i, tweet in enumerate(top_engaging_tweets["top_likes"], 1):
-                            display_name = tweet.get('display_name', tweet['author'])
                             st.markdown(f"""
-                            **{i}. {display_name} (@{tweet['handle']}) (点赞: {tweet['likes']})** - {tweet['text']}
+                            **{i}. @{tweet['handle']} (点赞: {tweet['likes']})** - {tweet['text']}
                             """)
+
                     if "top_replies" in top_engaging_tweets:
                         st.markdown("#### 最高回复量推文")
                         for i, tweet in enumerate(top_engaging_tweets["top_replies"], 1):
-                            display_name = tweet.get('display_name', tweet['author'])
                             st.markdown(f"""
-                            **{i}. {display_name} (@{tweet['handle']}) (回复: {tweet['replies']})** - {tweet['text']}
+                            **{i}. @{tweet['handle']} (回复: {tweet['replies']})** - {tweet['text']}
                             """)
+
             
             # Display individual analyses if available
             if twitter_data.get("analyses"):
@@ -1065,6 +841,7 @@ with tabs[0]:
                         st.markdown(f"**{author_name} (@{handle})**")
                         st.markdown(analysis_item["analysis"])
                         st.markdown("---")
+
 # ----------------------- Tab 2: Scheduled Reports -----------------------
 with tabs[1]:
     st.header("定时汇报")
@@ -1072,6 +849,7 @@ with tabs[1]:
     st.info("开发中")
     scheduled_time = st.time_input("选择汇报时间（例如每日定时）", dt.time(hour=12, minute=0))
     st.write(f"当前设置的汇报时间为：{scheduled_time}")
+
 # ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[2]:
     st.header("事实知识库")
@@ -1145,6 +923,7 @@ with tabs[2]:
         if os.path.exists(RAG_DATA_PATH):
             os.remove(RAG_DATA_PATH)
         st.success("已清空所有本地信息！")
+
 # ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[3]:
     st.header("直接聊天")
