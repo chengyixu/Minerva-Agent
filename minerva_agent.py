@@ -832,7 +832,7 @@ with tabs[0]:
                     if st.button("删除", key=f"del_website_{i}"):
                         websites_db = remove_website_from_db(website["url"])
                         st.success(f"已删除网站: {website['name']}")
-                        st.experimental_rerun()
+                        st.rerun()
             
             # Form to add a new website
             st.subheader("添加新网站")
@@ -852,7 +852,7 @@ with tabs[0]:
                         st.success(f"已添加新网站: {new_name} ({clean_url})")
                     else:
                         st.success(f"已更新网站名称: {new_name} ({clean_url})")
-                    st.experimental_rerun()
+                    st.rerun()
         
         # Build a list of websites for monitoring
         monitoring_websites = []
@@ -948,7 +948,7 @@ with tabs[0]:
                     if st.button("删除", key=f"del_account_{i}"):
                         twitter_accounts_db = remove_twitter_account_from_db(account["handle"])
                         st.success(f"已删除账号: {account['name']} (@{account['handle']})")
-                        st.experimental_rerun()
+                        st.rerun()
             
             # Form to add a new Twitter account
             st.subheader("添加新X/Twitter账号")
@@ -966,7 +966,7 @@ with tabs[0]:
                         st.success(f"已添加新账号: {new_name} (@{clean_handle})")
                     else:
                         st.success(f"已更新账号名称: {new_name} (@{clean_handle})")
-                    st.experimental_rerun()
+                    st.rerun()
         
         # Build a list of Twitter handles for monitoring
         monitoring_handles = []
@@ -1216,7 +1216,7 @@ with tabs[1]:
                                 metadata[file_name]['标签'] = new_tag
                                 save_rag_metadata(metadata)
                                 st.success(f"已更新 {file_name} 的元数据")
-                                st.experimental_rerun()
+                                st.rerun()
                     
                     # Display a preview of the file content
                     content_preview = file_meta.get('content', '')
@@ -1361,7 +1361,7 @@ with tabs[1]:
             if st.button("清空聊天记录", key="clear_rag_chat"):
                 st.session_state["rag_chat_history"] = []
                 st.success("聊天记录已清空！")
-                st.experimental_rerun()
+                st.rerun()
 
 # ----------------------- Tab 3: Direct Chat -----------------------
 with tabs[2]:
