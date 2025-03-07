@@ -15,7 +15,7 @@ import glob
 import pandas as pd
 import PyPDF2
 import docx
-from python-pptx import Presentation
+from pptx import Presentation
 
 
 # Create data directory if it doesn't exist
