@@ -1287,7 +1287,7 @@ with tabs[1]:
         metadata = load_rag_metadata()
         
         if not metadata:
-            st.warning("知识库中没有文件。请先在"文件管理"选项卡中添加文件。")
+            st.warning('知识库中没有文件。请先在"文件管理"选项卡中添加文件。')
         else:
             # Get distinct types, names, and tags for filtering
             all_types = list(set(file_meta.get('类型', '') for file_meta in metadata.values() if file_meta.get('类型', '')))
