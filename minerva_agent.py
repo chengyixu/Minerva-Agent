@@ -1025,7 +1025,7 @@ with tabs[0]:
             monitoring_handles.append(handle)
         
         # Limit the number of selected handles to avoid rate limiting
-        max_handles = min(len(monitoring_handles) if monitoring_handles else 3, 10)
+        max_handles = min(len(monitoring_handles) if monitoring_handles else 3, 50000)
         if len(monitoring_handles) > max_handles:
             st.warning(f"由于API限制，一次最多只能监控{max_handles}个账号。已自动选择前{max_handles}个账号。")
             monitoring_handles = monitoring_handles[:max_handles]
@@ -1274,7 +1274,7 @@ with tabs[1]:
                         del metadata[file_name]
                         save_rag_metadata(metadata)
                         st.success(f"已从知识库中移除 {file_name}")
-                        st.experimental_rerun()
+                        st.rerun()
         
         # Upload new files section
         st.subheader("上传新文件")
@@ -1307,20 +1307,20 @@ with tabs[1]:
                     save_rag_metadata(metadata)
                     
                     st.success(f"文件 {uploaded_file.name} 已上传并添加到知识库")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("请选择一个文件上传")
         
         # Refresh button
         if st.button("刷新文件库"):
             scan_forag_directory()
-            st.experimental_rerun()
+            st.rerun()
         
         # Reset button - clears all metadata
         if st.button("重置知识库元数据"):
             save_rag_metadata({})
             st.success("知识库元数据已重置")
-            st.experimental_rerun()
+            st.rerun()
     
     # Chat with knowledge base tab
     with rag_tabs[1]:
@@ -1398,7 +1398,7 @@ with tabs[1]:
                     st.session_state["rag_chat_history"].append({"role": "assistant", "content": response})
                     
                     # Rerun to update the UI
-                    st.experimental_rerun()
+                    st.rerun()
             
             # Clear chat history button
             if st.button("清空聊天记录", key="clear_rag_chat"):
