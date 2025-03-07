@@ -23,6 +23,8 @@ TWITTER_DATA_PATH = os.path.join(DATA_DIR, "twitter_data.json")
 TWITTER_ACCOUNTS_DB_PATH = os.path.join(DATA_DIR, "twitter_accounts_db.json")
 TWITTER_INSIGHTS_PATH = os.path.join(DATA_DIR, "twitter_insights.json")
 RAG_DATA_PATH = os.path.join(DATA_DIR, "rag_data.pkl")
+os.environ["DASHSCOPE_API_KEY"] = "sk-1a28c3fcc7e044cbacd6faf47dc89755"
+
 
 # Helper functions for websites database
 def load_websites_db():
@@ -586,7 +588,7 @@ def extract_ai_insights_with_deepseek(tweets_data):
     
     # Use OpenAI client with Deepseek model
     client = OpenAI(
-        api_key=os.getenv("DASHSCOPE_API_KEY"),
+        api_key= "sk-1a28c3fcc7e044cbacd6faf47dc89755",
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
     
@@ -1065,15 +1067,8 @@ with tabs[0]:
                         st.markdown(f"**{author_name} (@{handle})**")
                         st.markdown(analysis_item["analysis"])
                         st.markdown("---")
-# ----------------------- Tab 2: Scheduled Reports -----------------------
-with tabs[1]:
-    st.header("定时汇报")
-    st.write("定时整合汇报各大信息网站的重要内容")
-    st.info("开发中")
-    scheduled_time = st.time_input("选择汇报时间（例如每日定时）", dt.time(hour=12, minute=0))
-    st.write(f"当前设置的汇报时间为：{scheduled_time}")
 # ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
-with tabs[2]:
+with tabs[1]:
     st.header("事实知识库")
     st.write("上传文件或添加网站，系统会提取内容，并在聊天时基于这些信息进行回答。")
     
@@ -1146,7 +1141,7 @@ with tabs[2]:
             os.remove(RAG_DATA_PATH)
         st.success("已清空所有本地信息！")
 # ----------------------- Tab 4: Direct Chat -----------------------
-with tabs[3]:
+with tabs[2]:
     st.header("直接聊天")
     st.write("基于 Qwen、大模型、本地信息库以及 Deepseek 模型，您可以直接与 AI 进行对话。")
     
