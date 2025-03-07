@@ -11,8 +11,6 @@ import time
 from datetime import datetime, timedelta
 import csv
 import pickle
-import glob
-import pandas as pd
 
 # Create data directory if it doesn't exist
 DATA_DIR = "data"
@@ -25,13 +23,8 @@ TWITTER_DATA_PATH = os.path.join(DATA_DIR, "twitter_data.json")
 TWITTER_ACCOUNTS_DB_PATH = os.path.join(DATA_DIR, "twitter_accounts_db.json")
 TWITTER_INSIGHTS_PATH = os.path.join(DATA_DIR, "twitter_insights.json")
 RAG_DATA_PATH = os.path.join(DATA_DIR, "rag_data.pkl")
-RAG_METADATA_PATH = os.path.join(DATA_DIR, "rag_metadata.json")
-
-# Ensure forag directory exists
-FORAG_DIR = "forag"
-os.makedirs(FORAG_DIR, exist_ok=True)
-
 os.environ["DASHSCOPE_API_KEY"] = "sk-1a28c3fcc7e044cbacd6faf47dc89755"
+
 
 # Helper functions for websites database
 def load_websites_db():
@@ -246,151 +239,29 @@ def load_rag_data():
                 return {"local_facts": [], "local_files": [], "timestamp": None}
     return {"local_facts": [], "local_files": [], "timestamp": None}
 
-# New functions for RAG metadata handling
-def load_rag_metadata():
-    """Load RAG metadata from JSON file"""
-    if os.path.exists(RAG_METADATA_PATH):
-        with open(RAG_METADATA_PATH, 'r', encoding='utf-8') as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                return {}
-    return {}
-
-def save_rag_metadata(metadata):
-    """Save RAG metadata to JSON file"""
-    with open(RAG_METADATA_PATH, 'w', encoding='utf-8') as f:
-        json.dump(metadata, f, ensure_ascii=False, indent=4)
-    return metadata
-
-def get_file_content(file_path):
-    """Extracts content from a file based on its extension"""
-    _, ext = os.path.splitext(file_path)
-    try:
-        if ext.lower() in ['.txt', '.md', '.py', '.java', '.html', '.css', '.js', '.json']:
-            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
-                return f.read()
-        elif ext.lower() in ['.csv']:
-            df = pd.read_csv(file_path)
-            return df.to_string()
-        else:
-            # For other file types, just return a placeholder
-            with open(file_path, 'rb') as f:
-                return f"Binary file content: {ext} (first 100 bytes: {f.read(100)})"
-    except Exception as e:
-        return f"Error reading file: {str(e)}"
-
-def scan_forag_directory():
-    """Scan the forag directory for files and update metadata"""
-    metadata = load_rag_metadata()
-    
-    # Get all files in the forag directory
-    files = glob.glob(os.path.join(FORAG_DIR, "*"))
-    
-    # Update metadata dict with default values for new files
-    for file_path in files:
-        file_name = os.path.basename(file_path)
-        if file_name not in metadata:
-            # Set default metadata for the file
-            if file_name == "Sapient.inc 2025 Intro Booklet.pdf":
-                # Special case for the sample file mentioned by the user
-                metadata[file_name] = {
-                    "类型": "项目",
-                    "名称": "Sapient",
-                    "标签": "宣传材料",
-                    "content": get_file_content(file_path)
-                }
-            else:
-                metadata[file_name] = {
-                    "类型": "",
-                    "名称": "",
-                    "标签": "",
-                    "content": get_file_content(file_path)
-                }
-    
-    # Remove entries for files that no longer exist
-    for file_name in list(metadata.keys()):
-        if not os.path.exists(os.path.join(FORAG_DIR, file_name)):
-            del metadata[file_name]
-    
-    # Save updated metadata
-    save_rag_metadata(metadata)
-    return metadata
-
-# Function for chat using local factual knowledge (RAG)
-def chat_with_local_facts(user_message, selected_filters=None):
-    """Chat with local facts with optional filtering by metadata"""
-    # Load metadata for all files
-    metadata = load_rag_metadata()
-    
-    # Filter based on selected filters if provided
-    filtered_metadata = metadata
-    if selected_filters:
-        filtered_metadata = {}
-        for file_name, file_meta in metadata.items():
-            # Check if the file matches all selected filters
-            matches = True
-            for key, value in selected_filters.items():
-                if value and file_meta.get(key, "") != value:
-                    matches = False
-                    break
-            if matches:
-                filtered_metadata[file_name] = file_meta
-    
-    # Build context from filtered metadata
-    context_text = ""
-    for file_name, file_meta in filtered_metadata.items():
-        # Add metadata information and content
-        context_text += f"【文件】 {file_name}\n"
-        context_text += f"类型: {file_meta.get('类型', '')}\n"
-        context_text += f"名称: {file_meta.get('名称', '')}\n"
-        context_text += f"标签: {file_meta.get('标签', '')}\n"
-        context_text += f"内容: {file_meta.get('content', '')[:1000]}\n\n"
-    
-    if not context_text:
-        context_text = "当前没有匹配的本地文件信息。"
-        
-    messages = [
-        {"role": "system", "content": f"你是一个基于本地事实知识库的智能助手。以下是部分文档内容用于辅助回答问题：\n{context_text}\n请基于这些内容回答用户问题。"},
-        {"role": "user", "content": user_message},
-    ]
-    response = dashscope.Generation.call(
-        api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
-        model="qwen-turbo",
-        messages=messages,
-        enable_search=True,
-        result_format='message'
-    )
-    return response['output']['choices'][0]['message']['content']
-
 # Initialize session state variables with persistent data if available
 if "local_facts" not in st.session_state:
     rag_data = load_rag_data()
-    st.session_state["local_facts"] = rag_data.get("local_facts", [])
-
+    st.session_state["local_facts"] = rag_data["local_facts"]
 if "local_files" not in st.session_state:
     if "local_facts" in st.session_state:  # Already loaded above
         rag_data = load_rag_data()
-        st.session_state["local_files"] = rag_data.get("local_files", [])
+        st.session_state["local_files"] = rag_data["local_files"]
     else:
         st.session_state["local_files"] = []
-
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
-
 if "twitter_results" not in st.session_state:
     twitter_data = load_twitter_data()
     st.session_state["twitter_results"] = {
-        "tweets": twitter_data.get("tweets", []),
-        "analyses": twitter_data.get("analyses", [])
+        "tweets": twitter_data["tweets"],
+        "analyses": twitter_data["analyses"]
     }
-
 if "ai_insights" not in st.session_state:
     insights_data = load_twitter_insights()
-    st.session_state["ai_insights"] = insights_data.get("ai_insights")
-
+    st.session_state["ai_insights"] = insights_data["ai_insights"]
 if "top_engaging_tweets" not in st.session_state and "top_engaging_tweets" in load_twitter_insights():
-    st.session_state["top_engaging_tweets"] = load_twitter_insights().get("top_engaging_tweets")
+    st.session_state["top_engaging_tweets"] = load_twitter_insights()["top_engaging_tweets"]
 
 # Initialize the Firecrawl app with API key
 fire_api = "fc-343fd362814545f295a89dc14ec4ee09"
@@ -774,6 +645,34 @@ def chat_with_qwen(user_message):
     )
     return response['output']['choices'][0]['message']['content']
 
+# Function for chat using local factual knowledge (RAG)
+def chat_with_local_facts(user_message):
+    local_facts = st.session_state.get("local_facts", [])
+    local_files = st.session_state.get("local_files", [])
+    
+    # Build a context string from each stored source – here we simply take the first 1000 characters per source
+    context_text = ""
+    for source in local_facts:
+        context_text += f"【网站】 {source['url']}\n{source['content'][:1000]}\n"
+    for file_info in local_files:
+        context_text += f"【文件】 {file_info['file_name']}\n{file_info['content'][:1000]}\n"
+    
+    if not context_text:
+        context_text = "当前没有本地信息。"
+        
+    messages = [
+        {"role": "system", "content": f"你是一个基于本地事实知识库的智能助手。以下是部分文档内容用于辅助回答问题：\n{context_text}\n请基于这些内容回答用户问题。"},
+        {"role": "user", "content": user_message},
+    ]
+    response = dashscope.Generation.call(
+        api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
+        model="qwen-turbo",
+        messages=messages,
+        enable_search=True,
+        result_format='message'
+    )
+    return response['output']['choices'][0]['message']['content']
+
 # Function for direct chat using Deepseek model
 def chat_with_deepseek(user_message):
     messages = [
@@ -796,9 +695,8 @@ def chat_with_deepseek(user_message):
 
 # ----------------------- Streamlit UI -----------------------
 st.title("Minerva Agent")
-# Create tabs for different functionalities
+# Create four tabs for different functionalities
 tabs = st.tabs(["热点监控", "事实知识库 (RAG)", "直接聊天"])
-
 # ----------------------- Tab 1: Trending Topics Monitoring -----------------------
 with tabs[0]:
     st.header("热点监控")
@@ -1169,199 +1067,80 @@ with tabs[0]:
                         st.markdown(f"**{author_name} (@{handle})**")
                         st.markdown(analysis_item["analysis"])
                         st.markdown("---")
-
-# ----------------------- Tab 2: RAG (Knowledge Base) -----------------------
+# ----------------------- Tab 3: Local Factual Knowledge Base (RAG) -----------------------
 with tabs[1]:
-    st.header("事实知识库 (RAG)")
+    st.header("事实知识库")
+    st.write("上传文件或添加网站，系统会提取内容，并在聊天时基于这些信息进行回答。")
     
-    # Create two subtabs - one for file management, one for chatting
-    rag_tabs = st.tabs(["文件管理", "基于知识库聊天"])
+    # Form to add a new website source – it immediately fetches and stores content.
+    with st.form("add_source_form"):
+        new_source = st.text_input("输入新信息源网址:")
+        source_desc = st.text_area("信息源描述:")
+        submitted = st.form_submit_button("添加信息源")
+        if submitted and new_source:
+            st.info(f"正在从 {new_source} 抓取内容...")
+            # Remove potential protocol parts for get_raw_html function
+            domain = new_source.replace("https://", "").replace("http://", "").strip()
+            raw_content = get_raw_html(domain)
+            st.session_state["local_facts"].append({
+                "type": "website",
+                "url": new_source,
+                "desc": source_desc,
+                "content": raw_content
+            })
+            # Save to persistent storage
+            save_rag_data(st.session_state["local_facts"], st.session_state["local_files"])
+            st.success(f"信息源 {new_source} 已添加，并提取内容！")
     
-    # File management tab
-    with rag_tabs[0]:
-        st.write("管理本地文件知识库")
-        
-        # Scan the forag directory for files and update metadata
-        metadata = scan_forag_directory()
-        
-        # Display current files and metadata
-        st.subheader("当前文件库")
-        
-        if not metadata:
-            st.info("目前没有发现任何文件。请上传文件或将文件放入 'forag' 文件夹。")
-        else:
-            # Display files in a table format
-            for i, (file_name, file_meta) in enumerate(metadata.items()):
-                with st.expander(f"{i+1}. {file_name}"):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write("**当前元数据：**")
-                        st.write(f"**类型:** {file_meta.get('类型', '未设置')}")
-                        st.write(f"**名称:** {file_meta.get('名称', '未设置')}")
-                        st.write(f"**标签:** {file_meta.get('标签', '未设置')}")
-                    
-                    with col2:
-                        # Form to update metadata
-                        with st.form(key=f"update_metadata_{i}"):
-                            st.write("**更新元数据：**")
-                            new_type = st.text_input("类型", value=file_meta.get('类型', ''), key=f"type_{i}")
-                            new_name = st.text_input("名称", value=file_meta.get('名称', ''), key=f"name_{i}")
-                            new_tag = st.text_input("标签", value=file_meta.get('标签', ''), key=f"tag_{i}")
-                            
-                            if st.form_submit_button("更新元数据"):
-                                metadata[file_name]['类型'] = new_type
-                                metadata[file_name]['名称'] = new_name
-                                metadata[file_name]['标签'] = new_tag
-                                save_rag_metadata(metadata)
-                                st.success(f"已更新 {file_name} 的元数据")
-                                st.experimental_rerun()
-                    
-                    # Display a preview of the file content
-                    content_preview = file_meta.get('content', '')
-                    if content_preview:
-                        if len(content_preview) > 1000:
-                            content_preview = content_preview[:1000] + "..."
-                        st.write("**文件内容预览：**")
-                        st.text_area("内容", content_preview, height=200, key=f"content_{i}")
-                    
-                    # Button to delete file from metadata (doesn't delete the actual file)
-                    if st.button("从知识库中移除", key=f"remove_{i}"):
-                        del metadata[file_name]
-                        save_rag_metadata(metadata)
-                        st.success(f"已从知识库中移除 {file_name}")
-                        st.experimental_rerun()
-        
-        # Upload new files section
-        st.subheader("上传新文件")
-        with st.form("upload_new_file_form", clear_on_submit=True):
-            uploaded_file = st.file_uploader("选择要上传的文件", key="rag_uploader")
-            
-            # Metadata fields
-            file_type = st.text_input("类型 (例如: 项目, 产品, 文章)")
-            file_name = st.text_input("名称 (例如: Sapient)")
-            file_tag = st.text_input("标签 (例如: 宣传材料, 技术文档)")
-            
-            if st.form_submit_button("上传文件"):
-                if uploaded_file is not None:
-                    # Save the file to the forag directory
-                    file_path = os.path.join(FORAG_DIR, uploaded_file.name)
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    
-                    # Extract content
-                    file_content = get_file_content(file_path)
-                    
-                    # Update metadata
-                    metadata = load_rag_metadata()
-                    metadata[uploaded_file.name] = {
-                        "类型": file_type,
-                        "名称": file_name,
-                        "标签": file_tag,
-                        "content": file_content
-                    }
-                    save_rag_metadata(metadata)
-                    
-                    st.success(f"文件 {uploaded_file.name} 已上传并添加到知识库")
-                    st.experimental_rerun()
-                else:
-                    st.error("请选择一个文件上传")
-        
-        # Refresh button
-        if st.button("刷新文件库"):
-            scan_forag_directory()
-            st.experimental_rerun()
-        
-        # Reset button - clears all metadata
-        if st.button("重置知识库元数据"):
-            save_rag_metadata({})
-            st.success("知识库元数据已重置")
-            st.experimental_rerun()
+    st.markdown("---")
+    # Form to upload files – the app processes and extracts text content.
+    with st.form("upload_file_form", clear_on_submit=True):
+        uploaded_files = st.file_uploader("选择要上传的文件（支持所有格式）", accept_multiple_files=True)
+        file_submitted = st.form_submit_button("上传文件")
+        if file_submitted and uploaded_files:
+            for file in uploaded_files:
+                try:
+                    file_bytes = file.getvalue()
+                    # 尝试解码为 UTF-8 文本
+                    try:
+                        file_text = file_bytes.decode("utf-8")
+                    except Exception:
+                        file_text = str(file_bytes)
+                    st.session_state["local_files"].append({
+                        "type": "file",
+                        "file_name": file.name,
+                        "content": file_text
+                    })
+                    # Save to persistent storage
+                    save_rag_data(st.session_state["local_facts"], st.session_state["local_files"])
+                    st.success(f"文件 {file.name} 已上传并处理！")
+                except Exception as e:
+                    st.error(f"处理文件 {file.name} 时出错：{e}")
     
-    # Chat with knowledge base tab
-    with rag_tabs[1]:
-        st.write("与本地知识库对话")
-        
-        # Load metadata
-        metadata = load_rag_metadata()
-        
-        if not metadata:
-            st.warning("知识库中没有文件。请先在"文件管理"选项卡中添加文件。")
-        else:
-            # Get distinct types, names, and tags for filtering
-            all_types = list(set(file_meta.get('类型', '') for file_meta in metadata.values() if file_meta.get('类型', '')))
-            all_names = list(set(file_meta.get('名称', '') for file_meta in metadata.values() if file_meta.get('名称', '')))
-            all_tags = list(set(file_meta.get('标签', '') for file_meta in metadata.values() if file_meta.get('标签', '')))
-            
-            # Add empty option
-            all_types = [""] + all_types
-            all_names = [""] + all_names
-            all_tags = [""] + all_tags
-            
-            # Filters
-            st.subheader("过滤选项")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                selected_type = st.selectbox("类型", all_types)
-            with col2:
-                selected_name = st.selectbox("名称", all_names)
-            with col3:
-                selected_tag = st.selectbox("标签", all_tags)
-            
-            # Build filter dict
-            filters = {}
-            if selected_type:
-                filters["类型"] = selected_type
-            if selected_name:
-                filters["名称"] = selected_name
-            if selected_tag:
-                filters["标签"] = selected_tag
-            
-            # Show selected filters
-            if filters:
-                st.write("已选择的过滤条件:")
-                for key, value in filters.items():
-                    st.write(f"- {key}: {value}")
-            else:
-                st.info("没有选择过滤条件，将使用所有文件回答问题。")
-            
-            # Chat history
-            if "rag_chat_history" not in st.session_state:
-                st.session_state["rag_chat_history"] = []
-            
-            # Display chat history
-            st.subheader("聊天记录")
-            for message in st.session_state["rag_chat_history"]:
-                if message["role"] == "user":
-                    st.markdown(f"**您:** {message['content']}")
-                else:
-                    st.markdown(f"**AI:** {message['content']}")
-            
-            # Chat input
-            st.subheader("与知识库对话")
-            with st.form("rag_chat_form", clear_on_submit=True):
-                chat_input = st.text_input("输入您的问题：")
-                submitted = st.form_submit_button("发送")
-                
-                if submitted and chat_input:
-                    # Add user message to chat history
-                    st.session_state["rag_chat_history"].append({"role": "user", "content": chat_input})
-                    
-                    # Generate response based on the local knowledge base (with filters)
-                    response = chat_with_local_facts(chat_input, filters)
-                    
-                    # Add AI response to chat history
-                    st.session_state["rag_chat_history"].append({"role": "assistant", "content": response})
-                    
-                    # Rerun to update the UI
-                    st.experimental_rerun()
-            
-            # Clear chat history button
-            if st.button("清空聊天记录"):
-                st.session_state["rag_chat_history"] = []
-                st.success("聊天记录已清空！")
-                st.experimental_rerun()
-
-# ----------------------- Tab 3: Direct Chat -----------------------
+    st.markdown("### 当前本地信息")
+    if len(st.session_state["local_facts"]) > 0:
+        st.write("#### 网站信息")
+        for idx, fact in enumerate(st.session_state["local_facts"], start=1):
+            st.write(f"**{idx}.** {fact['url']} — {fact['desc']}")
+    else:
+        st.info("还没有添加任何网站信息。")
+    
+    if len(st.session_state["local_files"]) > 0:
+        st.write("#### 上传的文件")
+        for idx, file_info in enumerate(st.session_state["local_files"], start=1):
+            st.write(f"**{idx}.** {file_info['file_name']}")
+    else:
+        st.info("还没有上传任何文件。")
+    
+    # Add a clear button to reset the RAG database
+    if st.button("清空所有本地信息"):
+        st.session_state["local_facts"] = []
+        st.session_state["local_files"] = []
+        save_rag_data([], [])
+        if os.path.exists(RAG_DATA_PATH):
+            os.remove(RAG_DATA_PATH)
+        st.success("已清空所有本地信息！")
+# ----------------------- Tab 4: Direct Chat -----------------------
 with tabs[2]:
     st.header("直接聊天")
     st.write("基于 Qwen、大模型、本地信息库以及 Deepseek 模型，您可以直接与 AI 进行对话。")
