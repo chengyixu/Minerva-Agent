@@ -21,3 +21,6 @@ numpy
 pillow
 fastapi
 uvicorn
+PyPDF2
+docx
+pptx

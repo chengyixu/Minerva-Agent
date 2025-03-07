@@ -13,6 +13,12 @@ import csv
 import pickle
 import glob
 import pandas as pd
+import os
+import pandas as pd
+import PyPDF2
+import docx
+from pptx import Presentation
+
 
 # Create data directory if it doesn't exist
 DATA_DIR = "data"
@@ -264,22 +270,61 @@ def save_rag_metadata(metadata):
     return metadata
 
 def get_file_content(file_path):
-    """Extracts content from a file based on its extension"""
+    """Extracts content from a file based on its extension."""
     _, ext = os.path.splitext(file_path)
+    ext = ext.lower()
+    
     try:
-        if ext.lower() in ['.txt', '.md', '.py', '.java', '.html', '.css', '.js', '.json']:
+        # Handle plain text and code files
+        if ext in ['.txt', '.md', '.py', '.java', '.html', '.css', '.js', '.json']:
             with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
                 return f.read()
-        elif ext.lower() in ['.csv']:
+        
+        # Handle CSV files
+        elif ext == '.csv':
             df = pd.read_csv(file_path)
             return df.to_string()
-        else:
-            # For other file types, just return a placeholder
+        
+        # Handle Excel files
+        elif ext in ['.xls', '.xlsx']:
+            df = pd.read_excel(file_path)
+            return df.to_string()
+        
+        # Handle PDF files
+        elif ext == '.pdf':
             with open(file_path, 'rb') as f:
-                return f"Binary file content: {ext} (first 100 bytes: {f.read(100)})"
+                reader = PyPDF2.PdfReader(f)
+                pages = []
+                for page in reader.pages:
+                    text = page.extract_text() or ""
+                    pages.append(text)
+                return "\n".join(pages)
+        
+        # Handle DOCX files
+        elif ext == '.docx':
+            doc = docx.Document(file_path)
+            paragraphs = [para.text for para in doc.paragraphs]
+            return "\n".join(paragraphs)
+        
+        # Handle PPTX files
+        elif ext == '.pptx':
+            prs = Presentation(file_path)
+            slide_texts = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text"):
+                        slide_texts.append(shape.text)
+            return "\n".join(slide_texts)
+        
+        # Fallback for other binary files: read the entire file in binary mode
+        else:
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            return f"Binary file content ({ext}): {content}"
+    
     except Exception as e:
         return f"Error reading file: {str(e)}"
-
+        
 def scan_forag_directory():
     """Scan the forag directory for files and update metadata"""
     metadata = load_rag_metadata()
