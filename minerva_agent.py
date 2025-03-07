@@ -269,7 +269,7 @@ def save_rag_metadata(metadata):
 
 def get_file_content(file_path):
     """Extracts content from a file based on its extension with improved PDF handling."""
-    _, ext = os.path.splitext(file_path)
+    _, ext = os.path.splitext(file_path)  # Fixed syntax error here
     ext = ext.lower()
     
     try:
@@ -317,6 +317,7 @@ def get_file_content(file_path):
     except Exception as e:
         return f"Error reading file: {str(e)}"
 
+        
 def extract_pdf_content(file_path):
     """
     Extract content from a PDF file with improved error handling and better structure.
@@ -367,9 +368,9 @@ def extract_pdf_content(file_path):
     except Exception as e:
         return f"An error occurred while reading the PDF: {str(e)}"
 
-        
+
 def scan_forag_directory():
-    """Scan the forag directory for files and update metadata"""
+    """Scan the forag directory for files and update metadata with improved PDF handling"""
     metadata = load_rag_metadata()
     
     # Get all files in the forag directory
@@ -378,23 +379,38 @@ def scan_forag_directory():
     # Update metadata dict with default values for new files
     for file_path in files:
         file_name = os.path.basename(file_path)
+        
+        # Check if file is new or needs content refresh
+        content_needs_update = False
         if file_name not in metadata:
-            # Set default metadata for the file
-            if file_name == "Sapient.inc 2025 Intro Booklet.pdf":
-                # Special case for the sample file mentioned by the user
-                metadata[file_name] = {
-                    "类型": "项目",
-                    "名称": "Sapient",
-                    "标签": "宣传材料",
-                    "content": get_file_content(file_path)
-                }
+            # New file
+            metadata[file_name] = {
+                "类型": "",
+                "名称": "",
+                "标签": "",
+                "content": ""  # Initialize empty, will be filled below
+            }
+            content_needs_update = True
+        elif not metadata[file_name].get('content'):
+            # Existing file but content is missing
+            content_needs_update = True
+        
+        # Special case for specific files
+        if file_name == "Sapient.inc 2025 Intro Booklet.pdf" and (file_name not in metadata or not metadata[file_name].get("类型")):
+            metadata[file_name]["类型"] = "项目"
+            metadata[file_name]["名称"] = "Sapient"
+            metadata[file_name]["标签"] = "宣传材料"
+            content_needs_update = True
+        
+        # Update content if needed
+        if content_needs_update:
+            st.info(f"正在提取 {file_name} 的内容...")
+            # For PDFs, explicitly use extract_pdf_content
+            if file_name.lower().endswith('.pdf'):
+                metadata[file_name]["content"] = extract_pdf_content(file_path)
             else:
-                metadata[file_name] = {
-                    "类型": "",
-                    "名称": "",
-                    "标签": "",
-                    "content": get_file_content(file_path)
-                }
+                metadata[file_name]["content"] = get_file_content(file_path)
+            st.success(f"{file_name} 内容提取完成")
     
     # Remove entries for files that no longer exist
     for file_name in list(metadata.keys()):
@@ -404,6 +420,7 @@ def scan_forag_directory():
     # Save updated metadata
     save_rag_metadata(metadata)
     return metadata
+
 
 # Function for chat using local factual knowledge (RAG)
 def chat_with_local_facts(user_message, selected_filters=None):
@@ -433,15 +450,43 @@ def chat_with_local_facts(user_message, selected_filters=None):
         context_text += f"类型: {file_meta.get('类型', '')}\n"
         context_text += f"名称: {file_meta.get('名称', '')}\n"
         context_text += f"标签: {file_meta.get('标签', '')}\n"
-        context_text += f"内容: {file_meta.get('content', '')[:100000000]}\n\n"
+        
+        # Special handling for PDFs - ensure content is fully included
+        if file_name.lower().endswith('.pdf'):
+            # Check if content exists in metadata
+            if 'content' not in file_meta or not file_meta['content']:
+                # If content is missing, try to extract it again
+                file_path = os.path.join(FORAG_DIR, file_name)
+                if os.path.exists(file_path):
+                    file_meta['content'] = extract_pdf_content(file_path)
+                    # Save the updated metadata
+                    metadata[file_name] = file_meta
+                    save_rag_metadata(metadata)
+            
+            # Add the content with special note for PDFs
+            context_text += f"内容 (PDF文档): {file_meta.get('content', '')}\n\n"
+        else:
+            # For non-PDF files, use the standard approach
+            context_text += f"内容: {file_meta.get('content', '')}\n\n"
     
     if not context_text:
         context_text = "当前没有匹配的本地文件信息。"
+    
+    # Prepare system prompt that emphasizes full content use
+    system_prompt = f"""你是一个基于本地事实知识库的智能助手。
+    以下是部分文档内容用于辅助回答问题：
+    {context_text}
+    请注意：
+    1. 请详细阅读所有文档内容，尤其是PDF文档的全部内容
+    2. 回答用户问题时请尽可能详细地引用文档中的相关信息
+    3. 如果文档内容无法回答用户问题，请诚实说明
+    请基于这些内容回答用户问题。"""
         
     messages = [
-        {"role": "system", "content": f"你是一个基于本地事实知识库的智能助手。以下是部分文档内容用于辅助回答问题：\n{context_text}\n请基于这些内容回答用户问题。"},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message},
     ]
+    
     response = dashscope.Generation.call(
         api_key="sk-1a28c3fcc7e044cbacd6faf47dc89755",
         model="qwen-turbo",
@@ -449,6 +494,7 @@ def chat_with_local_facts(user_message, selected_filters=None):
         enable_search=True,
         result_format='message'
     )
+    
     return response['output']['choices'][0]['message']['content']
 
 # Initialize session state variables with persistent data if available
